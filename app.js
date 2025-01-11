@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const { sequelize } = require('./models');
 const userRoutes = require('./routes/userRoutes');
+const programRoutes = require('./routes/programRoutes');
 
 const app = express();
 const PORT = 3000;
@@ -33,9 +34,16 @@ app.use(express.json());
 
 // 라우트 설정
 app.use('/users', userRoutes);
+app.use('/programs', programRoutes);
+
 
 // 데이터베이스 동기화 및 서버 시작
-sequelize.sync({ force: false }).then(() => {
-  console.log('데이터베이스 동기화 완료');
-  app.listen(PORT, () => console.log(`http://localhost:${PORT} 서버 실행 중`));
-});
+sequelize.sync({ force: true }) // DB 기존 테이블 삭제 후 재설정, 개발 단계에서는 가능
+// sequelize.sync({ alter: true }) // DB 기존 테이블을 삭제하지 않고 스키마를 업데이트함
+  .then(() => {
+    console.log('데이터베이스 동기화 완료');
+    app.listen(PORT, () => console.log(`http://localhost:${PORT} 서버 실행 중`));
+  })
+  .catch((err) => {
+    console.error('데이터베이스 동기화 실패:', err);
+  });
