@@ -48,10 +48,6 @@ coverage/
 docker-compose.override.yml
 docker-compose.override.yaml
 
-# 프로젝트 디렉토리에서 특정 파일 무시
-*.local
-*.env.local
-*.env.test.local
 
 # 기타
 *.bak
