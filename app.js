@@ -3,6 +3,7 @@ const cors = require('cors');
 const { sequelize } = require('./models');
 const userRoutes = require('./routes/userRoutes');
 const programRoutes = require('./routes/programRoutes');
+const proxyRoutes = require('./routes/proxy');
 
 const app = express();
 const PORT = 3000;
@@ -35,6 +36,7 @@ app.use(express.json());
 // 라우트 설정
 app.use('/users', userRoutes);
 app.use('/programs', programRoutes);
+app.use('/proxy', proxyRoutes);
 
 
 // 데이터베이스 동기화 및 서버 시작
