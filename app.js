@@ -1,51 +1,125 @@
+// 환경 변수 로딩 (가장 먼저)
+require('dotenv').config({ path: '.env.local' });
+
 const express = require('express');
 const cors = require('cors');
 const { sequelize } = require('./models');
-const userRoutes = require('./routes/userRoutes');
-const programRoutes = require('./routes/programRoutes');
-const proxyRoutes = require('./routes/proxy');
+const routes = require('./routes');
+const errorHandler = require('./middlewares/errorHandler');
+const logger = require('./middlewares/logger');
+
+// 환경 변수 디버깅 (개발 환경에서만)
+if (process.env.NODE_ENV === 'development') {
+  console.log('🔧 환경 변수 확인:');
+  console.log('NODE_ENV:', process.env.NODE_ENV);
+  console.log('DB_HOST:', process.env.DB_HOST);
+  console.log('DB_NAME:', process.env.DB_NAME);
+  console.log('DB_USER:', process.env.DB_USER);
+  console.log('DB_PORT:', process.env.DB_PORT);
+  console.log('DB_PASSWORD:', process.env.DB_PASSWORD ? '***설정됨***' : '***설정되지 않음***');
+}
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-// CORS 설정
+// CORS 설정 (실무 환경)
 const allowedOrigins = [
+  'http://localhost:3000',
   'http://localhost:5173', // React 개발 서버
-  'http://localhost:3000', // API 테스트
-  'http://example.com', // 허용할 추가 도메인
+  'http://localhost:3001', // 다른 프론트엔드 포트
+  'https://yourdomain.com' // 프로덕션 도메인
 ];
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      // 요청 Origin이 허용된 Origin 리스트에 있으면 승인
+    // 개발 환경에서는 모든 origin 허용
+    if (process.env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
-      // 요청 Origin이 허용되지 않으면 에러 반환
-      callback(new Error('Not allowed by CORS'));
+      // 프로덕션에서는 허용된 origin만
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('CORS 정책에 의해 차단되었습니다.'));
+      }
     }
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], // 허용할 HTTP 메서드
-  allowedHeaders: ['Content-Type', 'Authorization'], // 허용할 헤더
-  credentials: true, // 쿠키 허용
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  optionsSuccessStatus: 200
 }));
 
-// JSON 요청 처리
-app.use(express.json());
+// 미들웨어 설정
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// 라우트 설정
-app.use('/users', userRoutes);
-app.use('/programs', programRoutes);
-app.use('/proxy', proxyRoutes);
+// 로깅 미들웨어
+app.use(logger);
 
+// API 라우트
+app.use('/api', routes);
 
-// 데이터베이스 동기화 및 서버 시작
-sequelize.sync({ force: true }) // DB 기존 테이블 삭제 후 재설정, 개발 단계에서는 가능
-// sequelize.sync({ alter: true }) // DB 기존 테이블을 삭제하지 않고 스키마를 업데이트함
-  .then(() => {
-    console.log('데이터베이스 동기화 완료');
-    app.listen(PORT, () => console.log(`http://localhost:${PORT} 서버 실행 중`));
-  })
-  .catch((err) => {
-    console.error('데이터베이스 동기화 실패:', err);
+// 404 핸들러
+app.use('*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: '요청한 리소스를 찾을 수 없습니다.',
+    path: req.originalUrl,
+    timestamp: new Date().toISOString()
   });
+});
+
+// 에러 핸들링 미들웨어 (반드시 마지막에 위치)
+app.use(errorHandler);
+
+// 데이터베이스 연결 및 서버 시작
+const startServer = async () => {
+  try {
+    console.log('🔍 데이터베이스 연결 시도 중...');
+    console.log('📍 연결 대상:', process.env.DB_HOST);
+    
+    // 데이터베이스 연결 테스트
+    await sequelize.authenticate();
+    console.log('✅ 데이터베이스 연결 성공');
+
+    // // 데이터베이스 동기화 (개발 환경에서만)
+    // if (process.env.NODE_ENV === 'development') {
+    //   console.log('🔄 데이터베이스 동기화 시작...');
+    //   await sequelize.sync({ alter: true });
+    //   console.log('✅ 데이터베이스 동기화 완료');
+    // }
+
+    // 서버 시작
+    app.listen(PORT, () => {
+      console.log(`🚀 서버가 http://localhost:${PORT}에서 실행 중입니다!`);
+      console.log(`👥 사용자 API: http://localhost:${PORT}/api/users`);
+      console.log(`🌍 환경: ${process.env.NODE_ENV || 'development'}`);
+    });
+
+  } catch (error) {
+    console.error('❌ 서버 시작 실패:', error);
+    console.error('🔍 에러 상세 정보:', {
+      name: error.name,
+      message: error.message,
+      code: error.parent?.code,
+      detail: error.parent?.detail
+    });
+    process.exit(1);
+  }
+};
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM 신호 수신, 서버 종료 중...');
+  await sequelize.close();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('SIGINT 신호 수신, 서버 종료 중...');
+  await sequelize.close();
+  process.exit(0);
+});
+
+startServer();

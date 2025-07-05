@@ -2,24 +2,36 @@ module.exports = (sequelize, DataTypes) => {
   const Lesson = sequelize.define('Lesson', {
     id: {
       type: DataTypes.INTEGER,
-      autoIncrement: true,
       primaryKey: true,
+      autoIncrement: true
+    },
+    order_no: {
+      type: DataTypes.INTEGER,
+      allowNull: false
     },
     name: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: false
     },
-    content: {
-      type: DataTypes.TEXT,
+    type: {
+      type: DataTypes.STRING,
+      allowNull: false
     },
-    order: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0,
+    description: {
+      type:
+      DataTypes.STRING
     },
+  }, {
+    tableName: 'lesson',
+    timestamps: false,
   });
+
   Lesson.associate = (models) => {
-    Lesson.belongsTo(models.Stage, { foreignKey: 'stage_id' });
-    Lesson.hasMany(models.Problem, { foreignKey: 'lesson_id', onDelete: 'CASCADE' });
-  };
+    Lesson.hasMany(models.MyClassStatus, { foreignKey: 'lesson_id' });
+    Lesson.hasMany(models.SectionLessonMap, { foreignKey: 'lesson_id' });
+    Lesson.hasMany(models.LessonSlideMap, { foreignKey: 'lesson_id' });
+    Lesson.hasMany(models.StudyHeatmapLog, { foreignKey: 'lesson_id' });
+  };  
+
   return Lesson;
-};
+}

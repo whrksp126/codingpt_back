@@ -2,33 +2,52 @@ module.exports = (sequelize, DataTypes) => {
   const User = sequelize.define('User', {
     id: {
       type: DataTypes.INTEGER,
-      autoIncrement: true,
       primaryKey: true,
-    },
-    name: {
-      type: DataTypes.STRING,
-      allowNull: false,
+      autoIncrement: true
     },
     email: {
       type: DataTypes.STRING,
+      allowNull: false
+    },
+    google_id: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    refresh_token: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false
+    },
+    profile_img: {
+      type: DataTypes.STRING
+    },
+    nickname: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    xp: {
+      type: DataTypes.INTEGER, 
       allowNull: false,
-      unique: true,
+      defaultValue: 0
     },
-    current_hearts: {
+    heart: {
       type: DataTypes.INTEGER,
-      defaultValue: 5, // 기본값: 5개
+      allowNull: false,
+      defaultValue: 5
     },
-    max_hearts: {
-      type: DataTypes.INTEGER,
-      defaultValue: 5, // 최대 하트 수
-    },
-    next_heart_time: {
-      type: DataTypes.DATE, // 다음 하트 생성 시간
-    },
-    auto_generate_interval: {
-      type: DataTypes.INTEGER, // 하트 자동 생성 간격 (분 단위)
-      defaultValue: 60, // 기본값: 60분
-    },
+  }, {
+    tableName: 'user',
+    timestamps: false,
   });
+
+  User.associate = (models) => {
+    User.hasMany(models.Review, { foreignKey: 'user_id' });
+    User.hasMany(models.MyClass, { foreignKey: 'user_id' });
+    User.hasMany(models.StudyHeatmapLog, { foreignKey: 'user_id' });
+  };
+
   return User;
 };

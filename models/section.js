@@ -2,24 +2,36 @@ module.exports = (sequelize, DataTypes) => {
   const Section = sequelize.define('Section', {
     id: {
       type: DataTypes.INTEGER,
-      autoIncrement: true,
       primaryKey: true,
+      autoIncrement: true
+    },
+    order_no: {
+      type: DataTypes.INTEGER,
+      allowNull: false
     },
     name: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: false
     },
-    description: {
-      type: DataTypes.TEXT,
+    doc_concept: {
+      type: DataTypes.JSON,
+      allowNull: false
     },
-    order: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0,
-    },
+  }, {
+    tableName: 'section',
+    timestamps: false,
   });
+
   Section.associate = (models) => {
-    Section.belongsTo(models.Curriculum, { foreignKey: 'curriculum_id' });
-    Section.hasMany(models.Unit, { foreignKey: 'section_id', onDelete: 'CASCADE' });
-  };
+    Section.hasMany(models.SectionLessonMap, { foreignKey: 'section_id' });
+    Section.belongsToMany(models.Class, {
+      through: models.ClassSectionMap,
+      foreignKey: 'section_id',
+      otherKey: 'class_id',
+      timestamps: false
+    });
+    Section.hasMany(models.StudyHeatmapLog, { foreignKey: 'section_id' });
+  };  
+
   return Section;
 };

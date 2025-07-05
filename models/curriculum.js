@@ -2,24 +2,31 @@ module.exports = (sequelize, DataTypes) => {
   const Curriculum = sequelize.define('Curriculum', {
     id: {
       type: DataTypes.INTEGER,
-      autoIncrement: true,
       primaryKey: true,
+      autoIncrement: true
     },
     name: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: false
     },
     description: {
-      type: DataTypes.TEXT,
+      type: DataTypes.STRING,
+      allowNull: false
     },
-    order: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0,
-    },
+  }, {
+    tableName: 'curriculum',
+    timestamps: false,
   });
+
   Curriculum.associate = (models) => {
-    Curriculum.belongsTo(models.Program, { foreignKey: 'program_id' });
-    Curriculum.hasMany(models.Section, { foreignKey: 'curriculum_id', onDelete: 'CASCADE' });
+    Curriculum.belongsToMany(models.Class, {
+      through: models.CurriculumClassMap,
+      foreignKey: 'curriculum_id',
+      otherKey: 'class_id',
+      timestamps: false
+    });
+    Curriculum.hasMany(models.ProductCurriculumMap, { foreignKey: 'curriculum_id' });
   };
+
   return Curriculum;
 };
