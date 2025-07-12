@@ -27,19 +27,26 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173', // React 개발 서버
   'http://localhost:3001', // 다른 프론트엔드 포트
+  'http://10.0.2.2:3000', // React Native Android 에뮬레이터
+  'http://10.0.2.2:8081', // React Native Metro 번들러
   'https://yourdomain.com' // 프로덕션 도메인
 ];
 
 app.use(cors({
   origin: (origin, callback) => {
+    console.log('🌐 CORS 요청 origin:', origin);
+    
     // 개발 환경에서는 모든 origin 허용
     if (process.env.NODE_ENV === 'development') {
+      console.log('✅ 개발 환경 - 모든 origin 허용');
       callback(null, true);
     } else {
       // 프로덕션에서는 허용된 origin만
       if (!origin || allowedOrigins.includes(origin)) {
+        console.log('✅ 허용된 origin:', origin);
         callback(null, true);
       } else {
+        console.log('❌ 차단된 origin:', origin);
         callback(new Error('CORS 정책에 의해 차단되었습니다.'));
       }
     }

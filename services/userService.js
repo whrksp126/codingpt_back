@@ -1,34 +1,151 @@
 const { User } = require('../models');
+const { OAuth2Client } = require('google-auth-library');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
+
+const ACCESS_SECRET = process.env.ACCESS_SECRET || 'ENV_NOT_FOUND_ACCESS_SECRET';
+const REFRESH_SECRET = process.env.REFRESH_SECRET || 'ENV_NOT_FOUND_REFRESH_SECRET';
+const GOOGLE_ANDROID_CLIENT_ID = process.env.GOOGLE_ANDROID_CLIENT_ID || 'ENV_NOT_FOUND_GOOGLE_ANDROID_CLIENT_ID';
+const GOOGLE_WEB_CLIENT_ID = process.env.GOOGLE_WEB_CLIENT_ID || 'ENV_NOT_FOUND_GOOGLE_WEB_CLIENT_ID';
+
+// Google OAuth 클라이언트 생성
+const client = new OAuth2Client();
 
 class UserService {
-  // 사용자 생성 (복잡한 검증 로직 포함)
-  async createUser(userData) {
-    const { email, google_id, refresh_token, nickname, profile_img } = userData;
-    
-    // 1. 필수 필드 검증
-    if (!email || !google_id || !refresh_token || !nickname) {
-      throw new Error('필수 필드가 누락되었습니다.');
+  // Google OAuth 로그인 (자동 회원가입 포함)
+  async login(idToken) {
+    if(!idToken) {
+      throw new Error('idToken이 필요합니다.');
     }
-    
-    // 2. 이메일 중복 확인
-    const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) {
-      throw new Error('이미 존재하는 이메일입니다.');
+    try{
+      try {
+        const ticket = await client.verifyIdToken({
+          idToken,
+          audience: GOOGLE_WEB_CLIENT_ID,
+        });
+        let payload;
+        try {
+          payload = ticket.getPayload();
+        } catch (payloadError) {
+          console.error('getPayload() 오류:', payloadError);
+          // ticket이 직접 payload인 경우
+          if (ticket.sub || ticket.email) {
+            payload = ticket;
+            console.log('ticket을 직접 payload로 사용');
+          } else {
+            throw new Error('토큰 페이로드를 추출할 수 없습니다.');
+          }
+        }
+        
+        const { sub: google_id, email, name } = payload;
+        let foundUser = await User.findOne({ where: { email } });
+        if(!foundUser) {
+          // 새 사용자 생성 시 임시 refresh_token 설정
+          const tempRefreshToken = jwt.sign(
+            { email, google_id }, 
+            REFRESH_SECRET, 
+            { expiresIn: '30d' }
+          );
+          
+          foundUser = await User.create({
+            email,
+            nickname: name,
+            google_id,
+            refresh_token: tempRefreshToken,
+            created_at: new Date(),
+          });
+        }
+        const accessToken = jwt.sign(
+          { id: foundUser.id, email: foundUser.email }, 
+          ACCESS_SECRET, 
+          { expiresIn: '60' } // 확인차 60초 설정
+        );
+        const refreshToken = jwt.sign(
+          { id: foundUser.id, email: foundUser.email}, 
+          REFRESH_SECRET, 
+          { expiresIn: '30d' }
+        );
+
+        await User.update({ refresh_token: refreshToken }, { where: { id: foundUser.id } });
+        console.log("accessToken:", accessToken);
+        console.log("refreshToken:", refreshToken);
+        return { accessToken, refreshToken };
+      } catch (verifyError) {
+        console.error('🔍 Google ID 토큰 검증 상세 에러:', {
+          name: verifyError.name,
+          message: verifyError.message,
+          code: verifyError.code,
+          status: verifyError.status
+        });
+        
+        throw verifyError;
+      }
+      // const { sub: google_id, email, name } = ticket.getPayload();
+      // console.log('google_id:', google_id);
+      // if(!email || !google_id) {
+      //   throw new Error('Invalid Google token');
+      // }
+
+      // console.log('email:', email);
+      
+
+    } catch(err) {
+      console.error('ID Token 검증 실패:', err);
+      throw new Error('유효하지 않은 idToken입니다.');  
     }
-    
-    // 3. 사용자 생성
-    const user = await User.create({
-      email,
-      google_id,
-      refresh_token,
-      nickname,
-      profile_img: profile_img || null,
-      created_at: new Date()
-    });
-    
-    return user;
+  }
+
+  // 엑세스 토큰 검증
+  async verifyAccessToken(token) {
+    try {
+      console.log('----------------');
+      const decoded = jwt.verify(token, ACCESS_SECRET);
+      return decoded;
+    } catch (err) {
+      if (err.name === 'TokenExpiredError') {
+        throw new Error('토큰 만료됨');
+      }
+  
+      console.error('JWT 검증 오류:', err.message);
+      throw new Error('토큰 유효하지 않음');
+    }
   }
   
+  // 엑세스 토큰 재발급
+  async refreshAccessToken(refreshToken) {
+    if(!refreshToken) {
+      throw new Error('refreshToken 없음');
+    }
+    try {
+      const payload = jwt.verify(refreshToken, REFRESH_SECRET);
+
+      const newAccessToken = jwt.sign(
+        { id: payload.id, email: payload.email },
+        ACCESS_SECRET,
+        { expiresIn: '60' } // 확인차 60초 설정
+      );
+
+      return { accessToken: newAccessToken };
+
+    } catch (err) {
+      console.error('Refresh Token 검증 실패:', err);
+      throw new Error('유효하지 않은 refreshToken입니다.');
+    }
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   // 사용자 정보 수정 (복잡한 검증 로직 포함)
   async updateUser(id, updateData) {
     const { email, nickname, profile_img } = updateData;

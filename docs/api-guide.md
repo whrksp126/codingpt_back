@@ -318,11 +318,32 @@ curl -X POST http://localhost:3000/api/users \
 curl http://localhost:3000/api/users/1
 ```
 
-## 🔐 인증 (향후 구현 예정)
+## 🔐 인증 API
 
+### Google OAuth 로그인 (자동 회원가입 포함)
 ```http
-GET /api/users/me
-Authorization: Bearer <jwt_token>
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "idToken": "google_id_token_here"
+}
+```
+
+**동작 방식:**
+- **기존 사용자**: 로그인 처리
+- **신규 사용자**: 자동 회원가입 후 로그인 처리
+
+**응답:**
+```json
+{
+  "success": true,
+  "message": "로그인 성공",
+  "data": {
+    "accessToken": "jwt_access_token",
+    "refreshToken": "jwt_refresh_token"
+  }
+}
 ```
 
 ## 📊 응답 예시
