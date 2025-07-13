@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { 
   login,
+  logout,
   verifyAccessToken,
   refreshAccessToken,
   updateUser, 
@@ -14,6 +15,7 @@ const {
 
 // 사용자 관련 라우트
 router.post('/login', login); // 로그인
+router.post('/logout', logout); // 로그아웃
 router.get('/verify', verifyAccessToken); // 엑세스 토큰 검증
 router.post('/refresh', refreshAccessToken); // 엑세스 토큰 재발급
 

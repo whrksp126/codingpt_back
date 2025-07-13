@@ -17,103 +17,137 @@ class UserService {
     if(!idToken) {
       throw new Error('idToken이 필요합니다.');
     }
-    try{
-      try {
-        const ticket = await client.verifyIdToken({
-          idToken,
-          audience: GOOGLE_WEB_CLIENT_ID,
-        });
-        let payload;
-        try {
-          payload = ticket.getPayload();
-        } catch (payloadError) {
-          console.error('getPayload() 오류:', payloadError);
-          // ticket이 직접 payload인 경우
-          if (ticket.sub || ticket.email) {
-            payload = ticket;
-            console.log('ticket을 직접 payload로 사용');
-          } else {
-            throw new Error('토큰 페이로드를 추출할 수 없습니다.');
-          }
-        }
-        
-        const { sub: google_id, email, name } = payload;
-        let foundUser = await User.findOne({ where: { email } });
-        if(!foundUser) {
-          // 새 사용자 생성 시 임시 refresh_token 설정
-          const tempRefreshToken = jwt.sign(
-            { email, google_id }, 
-            REFRESH_SECRET, 
-            { expiresIn: '30d' }
-          );
-          
-          foundUser = await User.create({
-            email,
-            nickname: name,
-            google_id,
-            refresh_token: tempRefreshToken,
-            created_at: new Date(),
-          });
-        }
-        const accessToken = jwt.sign(
-          { id: foundUser.id, email: foundUser.email }, 
-          ACCESS_SECRET, 
-          { expiresIn: '60' } // 확인차 60초 설정
-        );
-        const refreshToken = jwt.sign(
-          { id: foundUser.id, email: foundUser.email}, 
-          REFRESH_SECRET, 
-          { expiresIn: '30d' }
-        );
 
-        await User.update({ refresh_token: refreshToken }, { where: { id: foundUser.id } });
-        console.log("accessToken:", accessToken);
-        console.log("refreshToken:", refreshToken);
-        return { accessToken, refreshToken };
-      } catch (verifyError) {
-        console.error('🔍 Google ID 토큰 검증 상세 에러:', {
-          name: verifyError.name,
-          message: verifyError.message,
-          code: verifyError.code,
-          status: verifyError.status
-        });
-        
-        throw verifyError;
-      }
-      // const { sub: google_id, email, name } = ticket.getPayload();
-      // console.log('google_id:', google_id);
-      // if(!email || !google_id) {
-      //   throw new Error('Invalid Google token');
-      // }
+    try {
+      // 1. Google ID 토큰 검증
+      const ticket = await client.verifyIdToken({
+        idToken,
+        audience: GOOGLE_WEB_CLIENT_ID,
+      });
+      console.log('✅ Google 토큰 검증 성공');
 
-      // console.log('email:', email);
+      // 2. 토큰 페이로드 추출
+      const payload = ticket.getPayload();
+      const { sub: google_id, email, name } = payload;
       
+      if(!email || !google_id) {
+        throw new Error('Google 토큰에서 이메일 또는 Google ID를 찾을 수 없습니다.');
+      }
+      console.log('✅ 토큰 페이로드 추출 성공:', { email, google_id, name });
 
-    } catch(err) {
-      console.error('ID Token 검증 실패:', err);
-      throw new Error('유효하지 않은 idToken입니다.');  
+      // 3. 사용자 조회 또는 생성
+      let foundUser = await User.findOne({ where: { email } });
+      console.log('✅ 사용자 조회 완료:', foundUser ? '기존 사용자' : '새 사용자');
+      
+      if(!foundUser) {
+        // 새 사용자 생성 시 임시 refresh_token 설정
+        const tempRefreshToken = jwt.sign(
+          { email, google_id }, 
+          REFRESH_SECRET, 
+          { expiresIn: '1m' } // 테스트용 1분
+        );
+        
+        foundUser = await User.create({
+          email,
+          nickname: name,
+          google_id,
+          refresh_token: tempRefreshToken,
+          created_at: new Date(),
+        });
+        console.log('✅ 새 사용자 생성 성공:', foundUser.id);
+      }
+
+      // 4. JWT 토큰 생성
+      const accessToken = jwt.sign(
+        { id: foundUser.id, email: foundUser.email }, 
+        ACCESS_SECRET, 
+        { expiresIn: '20s' } // 테스트용 20초
+      );
+      const refreshToken = jwt.sign(
+        { id: foundUser.id, email: foundUser.email}, 
+        REFRESH_SECRET, 
+        { expiresIn: '1m' } // 테스트용 1분
+      );
+      console.log('✅ JWT 토큰 생성 성공');
+
+      // 5. Refresh Token 업데이트
+      await User.update({ refresh_token: refreshToken }, { where: { id: foundUser.id } });
+      console.log('✅ Refresh Token 업데이트 성공');
+      
+      console.log("accessToken:", accessToken);
+      console.log("refreshToken:", refreshToken);
+      
+      return { accessToken, refreshToken };
+
+    } catch (error) {
+      // 구체적인 에러 메시지 제공
+      if (error.message.includes('Wrong recipient')) {
+        throw new Error('Google 클라이언트 ID가 일치하지 않습니다. 토큰 검증 실패.');
+      } else if (error.message.includes('Token used too late')) {
+        throw new Error('Google 토큰이 만료되었습니다. 다시 로그인해주세요.');
+      } else if (error.message.includes('Invalid token')) {
+        throw new Error('유효하지 않은 Google 토큰입니다.');
+      } else if (error.name === 'SequelizeValidationError') {
+        throw new Error('사용자 데이터 생성 중 유효성 검사 실패: ' + error.message);
+      } else if (error.name === 'SequelizeUniqueConstraintError') {
+        throw new Error('이미 존재하는 사용자입니다.');
+      } else if (error.name === 'SequelizeConnectionError') {
+        throw new Error('데이터베이스 연결 오류가 발생했습니다.');
+      } else {
+        console.error('🔍 상세 에러 정보:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
+        throw new Error(`로그인 처리 중 오류가 발생했습니다: ${error.message}`);
+      }
+    }
+  }
+
+  // 로그아웃
+  async logout(authHeader) {
+    try {
+      if (!authHeader) {
+        throw new Error('토큰이 필요합니다.');
+      }
+
+      const token = authHeader.split(' ')[1];
+      if (!token) {
+        throw new Error('토큰 형식이 잘못되었습니다.');
+      }
+
+      // Access Token 검증
+      const decoded = jwt.verify(token, ACCESS_SECRET);
+      console.log('✅ 토큰 검증 성공:', decoded.id);
+
+      // Refresh Token을 빈 문자열로 설정하여 무효화
+      await User.update({ refresh_token: '' }, { where: { id: decoded.id } });
+      console.log('✅ 로그아웃 성공:', decoded.id);
+      
+      return { message: '로그아웃이 완료되었습니다.' };
+    } catch (error) {
+      console.error('로그아웃 오류:', error);
+      throw new Error('토큰이 유효하지 않습니다.');
     }
   }
 
   // 엑세스 토큰 검증
   async verifyAccessToken(token) {
     try {
-      console.log('----------------');
+      console.log("token:", token);
       const decoded = jwt.verify(token, ACCESS_SECRET);
+      console.log("decoded:", decoded);
       return decoded;
     } catch (err) {
-      if (err.name === 'TokenExpiredError') {
-        throw new Error('토큰 만료됨');
-      }
-  
       console.error('JWT 검증 오류:', err.message);
-      throw new Error('토큰 유효하지 않음');
+      throw new Error('토큰이 유효하지 않습니다.');
     }
   }
   
   // 엑세스 토큰 재발급
   async refreshAccessToken(refreshToken) {
-    if(!refreshToken) {
+    console.log("refreshToken:", refreshToken);
+    if(!refreshToken || refreshToken === '') {
       throw new Error('refreshToken 없음');
     }
     try {
@@ -122,7 +156,7 @@ class UserService {
       const newAccessToken = jwt.sign(
         { id: payload.id, email: payload.email },
         ACCESS_SECRET,
-        { expiresIn: '60' } // 확인차 60초 설정
+        { expiresIn: '20s' } // 테스트용 20초
       );
 
       return { accessToken: newAccessToken };

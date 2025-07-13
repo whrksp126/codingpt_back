@@ -1,5 +1,6 @@
 const userService = require('../services/userService');
 const { successResponse, errorResponse } = require('../utils/response');
+const jwt = require('jsonwebtoken');
 
 
 // 로그인
@@ -14,11 +15,21 @@ const login = async (req, res) => {
   }
 };
 
+// 로그아웃
+const logout = async (req, res) => {
+  try {
+    const result = await userService.logout(req.headers.authorization);
+    successResponse(res, result, '로그아웃이 완료되었습니다.');
+  } catch (error) {
+    console.error('로그아웃 오류:', error);
+    errorResponse(res, { message: error.message }, 401);
+  }
+};
+
 // 엑세스 토큰 검증
 const verifyAccessToken = async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
-    console.log('verifyAccessToken 호출', authHeader);
     if (!authHeader) return res.status(401).json({ message: '토큰 없음' });
 
     const token = authHeader.split(' ')[1];
@@ -26,7 +37,7 @@ const verifyAccessToken = async (req, res) => {
     successResponse(res, user, '토큰이 성공적으로 검증되었습니다.');
   } catch (error) {
     console.error('토큰 검증 오류:', error);
-    errorResponse(res, { message: error.message }, 400);
+    errorResponse(res, { message: error.message }, 401);
   }
 };
 
@@ -119,6 +130,7 @@ const updateUserHeart = async (req, res) => {
 
 module.exports = {
   login,
+  logout,
   verifyAccessToken,
   refreshAccessToken,
   updateUser,
