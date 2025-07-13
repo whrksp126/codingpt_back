@@ -39,19 +39,11 @@ class UserService {
       let foundUser = await User.findOne({ where: { email } });
       console.log('✅ 사용자 조회 완료:', foundUser ? '기존 사용자' : '새 사용자');
       
-      if(!foundUser) {
-        // 새 사용자 생성 시 임시 refresh_token 설정
-        const tempRefreshToken = jwt.sign(
-          { email, google_id }, 
-          REFRESH_SECRET, 
-          { expiresIn: '1m' } // 테스트용 1분
-        );
-        
+      if(!foundUser) {        
         foundUser = await User.create({
           email,
           nickname: name,
           google_id,
-          refresh_token: tempRefreshToken,
           created_at: new Date(),
         });
         console.log('✅ 새 사용자 생성 성공:', foundUser.id);

@@ -15,7 +15,6 @@ module.exports = (sequelize, DataTypes) => {
     },
     refresh_token: {
       type: DataTypes.STRING,
-      allowNull: false
     },
     created_at: {
       type: DataTypes.DATE,
