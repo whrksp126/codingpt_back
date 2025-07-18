@@ -1,6 +1,6 @@
 module.exports = (sequelize, DataTypes) => {
     const StoreCategoryProductMap = sequelize.define('StoreCategoryProductMap', {
-      storecategory_id: {
+      category_id: {
         type: DataTypes.INTEGER,
         allowNull: false
       },
@@ -14,7 +14,7 @@ module.exports = (sequelize, DataTypes) => {
     });
   
     StoreCategoryProductMap.associate = (models) => {
-      StoreCategoryProductMap.belongsTo(models.StoreCategory, { foreignKey: 'storecategory_id' });
+      StoreCategoryProductMap.belongsTo(models.StoreCategory, { foreignKey: 'category_id' });
       StoreCategoryProductMap.belongsTo(models.Product, { foreignKey: 'product_id' });
     };
   

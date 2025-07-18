@@ -22,8 +22,7 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: 0
     },
     lecture_intro: {
-      type: DataTypes.JSON,
-      allowNull: false
+      type: DataTypes.JSON
     },
   }, {
     tableName: 'product',
@@ -42,7 +41,12 @@ module.exports = (sequelize, DataTypes) => {
       otherKey: 'class_id',
       timestamps: false
     });
-    Product.hasMany(models.StoreCategoryProductMap, { foreignKey: 'product_id' });
+    Product.belongsToMany(models.StoreCategory, {
+      through: models.StoreCategoryProductMap,
+      foreignKey: 'product_id',
+      otherKey: 'category_id',
+      as: 'Categories',
+    });
     Product.hasMany(models.StudyHeatmapLog, { foreignKey: 'product_id' });
   };
 

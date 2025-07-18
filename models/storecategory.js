@@ -19,7 +19,12 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   StoreCategory.associate = (models) => {
-    StoreCategory.hasMany(models.StoreCategoryProductMap, { foreignKey: 'category_id' });
+    StoreCategory.belongsToMany(models.Product, {
+      through: models.StoreCategoryProductMap,
+      foreignKey: 'category_id',
+      otherKey: 'product_id',
+      as: 'Products',
+    });
   };
 
   return StoreCategory;
