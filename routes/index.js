@@ -4,12 +4,14 @@ const userRoutes = require('./userRoutes');
 const productRoutes = require('./productRoutes');
 const classRoutes = require('./classRoutes');
 const storeRoutes = require('./storeRoutes');
+const myclassRoutes = require('./myclassRoutes');
 
 // API 라우트 설정
 router.use('/users', userRoutes);
 router.use('/products', productRoutes);
 router.use('/classes', classRoutes);
 router.use('/store', storeRoutes);
+router.use('/myclass', myclassRoutes);
 
 // API 루트 엔드포인트
 router.get('/', (req, res) => {
@@ -21,10 +23,11 @@ router.get('/', (req, res) => {
       users: '/api/users',
       products: '/api/products',
       classes: '/api/classes',
-      classes: '/api/store'
+      store: '/api/store',
+      myclass: '/api/myclass'
     },
     timestamp: new Date().toISOString()
   });
 });
 
-module.exports = router; 
+module.exports = router;
