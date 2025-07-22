@@ -1,11 +1,20 @@
-const { MyClass } = require('../models');
+const { MyClass, Product } = require('../models');
 
 class MyClassService {
   // 모든 내강의 조회
-  async getAllMyclass() {
-    return await MyClass.findAll({
-      attributes: ['id', 'user_id', 'product_id']
+  async getAllMyclass(userId) {
+    const myclassList = await MyClass.findAll({
+      where: { user_id: userId },
+      include: [
+        {
+          model: Product,
+          attributes: ['id', 'name', 'description', 'type', 'price', 'lecture_intro']
+        }
+      ]
     });
+    // Product만 추출
+    //console.log(JSON.stringify(myclassList, null, 2));
+    return myclassList.map(entry => entry.Product);
   }
   
   // 특정 상품 수강 여부 조회

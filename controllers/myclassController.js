@@ -3,8 +3,9 @@ const { successResponse, errorResponse } = require('../utils/response');
 
 // 모든 내강의 조회
 const getAllMyclass = async (req, res) => {
+  const { userId } = req.params;
   try {
-    const myclasses = await myclassService.getAllMyclass();
+    const myclasses = await myclassService.getAllMyclass(userId);
     successResponse(res, myclasses, '내강의 목록을 성공적으로 조회했습니다.');
   } catch (error) {
     console.error('내강의 조회 오류:', error);
