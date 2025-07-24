@@ -68,8 +68,22 @@ class UserService {
       
       console.log("accessToken:", accessToken);
       console.log("refreshToken:", refreshToken);
+      //console.log("user:", foundUser);
       
-      return { accessToken, refreshToken };
+      // user 데이터도 함께 반환
+      return {
+        accessToken,
+        refreshToken,
+        user: {
+          id: foundUser.id,
+          email: foundUser.email,
+          nickname: foundUser.nickname,
+          profile_img: foundUser.profile_img,
+          xp: foundUser.xp,
+          heart: foundUser.heart,
+          created_at: foundUser.created_at,
+        }
+      };
 
     } catch (error) {
       // 구체적인 에러 메시지 제공
@@ -237,7 +251,7 @@ class UserService {
       throw new Error('해당 사용자를 찾을 수 없습니다.');
     }
     
-    user.xp = xp;
+    user.xp += xp;
     await user.save();
     
     return { xp: user.xp };
