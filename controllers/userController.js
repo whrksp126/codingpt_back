@@ -126,7 +126,23 @@ const updateUserHeart = async (req, res) => {
   }
 };
 
+// 잔디 조회: 학습 히트맵 데이터
+const getStudyHeatmap = async (req, res) => {
+  try {
+    const userId = req.user.id; // ✅ authMiddleware에서 주입됨
+    console.log('주입된거 ㅇ맞음? ㅡㅡ', userId);
+    const heatmapData = await userService.getStudyHeatmap(userId);
+    console.log('서비스에서 받아오나?', heatmapData);
 
+    return res.status(200).json({
+      success: true,
+      data: heatmapData,
+    });
+  } catch (error) {
+    console.error('Heatmap 조회 실패:', error);
+    return res.status(500).json({ success: false, message: '서버 오류' });
+  }
+};
 
 module.exports = {
   login,
@@ -139,4 +155,5 @@ module.exports = {
   getUserById,
   updateUserXp,
   updateUserHeart,
+  getStudyHeatmap,
 }; 
