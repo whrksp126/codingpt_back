@@ -273,10 +273,10 @@ class UserService {
 
   // 학습 히트맵 데이터 조회 함수
   async getStudyHeatmap(userId) {
-    // 현재 날짜 기준으로 4개월 전 1일 ~ 이번 달 말일까지 범위 계산
+    // 현재 날짜 기준으로 6개월 전 1일 ~ 이번 달 말일까지 범위 계산
     const today = new Date();
     const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0); // 이번 달 마지막 날
-    const startDate = new Date(today.getFullYear(), today.getMonth() - 3, 1); // 4개월 전 1일
+    const startDate = new Date(today.getFullYear(), today.getMonth() - 5, 1); // 6개월 전 1일
   
     const results = await StudyHeatmapLog.findAll({
       attributes: [
@@ -293,8 +293,13 @@ class UserService {
       order: [[fn('DATE', col('created_at')), 'ASC']],
       raw: true,
     });
-    console.log('userService : ', results);
-    return results; // [{ date: '2025-04-02', count: 2 }, ...]
+    //console.log('userService : ', results);
+    // count를 숫자형으로 변환해서 반환
+    const parsed = results.map(item => ({
+      date: item.date,
+      count: Number(item.count),
+    }));
+    return parsed; // [{ date: '2025-04-02', count: 2 }, ...]
   };
 }
 
