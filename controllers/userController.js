@@ -130,9 +130,7 @@ const updateUserHeart = async (req, res) => {
 const getStudyHeatmap = async (req, res) => {
   try {
     const userId = req.user.id; // ✅ authMiddleware에서 주입됨
-    console.log('주입된거 ㅇ맞음? ㅡㅡ', userId);
     const heatmapData = await userService.getStudyHeatmap(userId);
-    console.log('서비스에서 받아오나?', heatmapData);
 
     return res.status(200).json({
       success: true,

@@ -13,7 +13,6 @@ const authMiddleware = (req, res, next) => {
   
     try {
       const decoded = jwt.verify(token, ACCESS_SECRET); // ✅ ACCESS_SECRET으로 검증
-      console.log('검증이 도기ㅣㄴㄱ되려나.......', decoded);
       req.user = decoded; // 이후 req.user.id로 사용 가능
       next();
     } catch (error) {

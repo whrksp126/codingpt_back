@@ -59,7 +59,7 @@ class UserService {
       const refreshToken = jwt.sign(
         { id: foundUser.id, email: foundUser.email}, 
         REFRESH_SECRET, 
-        { expiresIn: '1m' } // 테스트용 1분
+        { expiresIn: '10m' } // 테스트용 10분
       );
       console.log('✅ JWT 토큰 생성 성공');
 
@@ -152,25 +152,53 @@ class UserService {
   }
   
   // 엑세스 토큰 재발급
+  // 기한 임박 시 리프레시 토큰 재발급
   async refreshAccessToken(refreshToken) {
     console.log("refreshToken:", refreshToken);
     if(!refreshToken || refreshToken === '') {
       throw new Error('refreshToken 없음');
     }
     try {
-      const payload = jwt.verify(refreshToken, REFRESH_SECRET);
+      // 실제 리프레시 토큰의 exp 값 확인
+      //const decoded = jwt.decode(refreshToken, { complete: true });
+      //console.log('refreshToken payload:', decoded.payload);
+
+      const decoded = jwt.verify(refreshToken, REFRESH_SECRET);
+      const now = Math.floor(Date.now() / 1000); // 현재 시간 (초)
 
       const newAccessToken = jwt.sign(
-        { id: payload.id, email: payload.email },
+        { id: decoded.id, email: decoded.email },
         ACCESS_SECRET,
         { expiresIn: '20s' } // 테스트용 20초
       );
 
-      return { accessToken: newAccessToken };
+      const timeRemaining = decoded.exp - now;
 
+      // refreshToken 남은 시간이 1일 미만이면 새로 발급 (테스트)
+      let newRefreshToken = null;
+      if (timeRemaining < 60 * 60 * 24) {
+        newRefreshToken = jwt.sign(
+          { id: decoded.id, email: decoded.email },
+          REFRESH_SECRET,
+          { expiresIn: '10m' }
+          );
+        console.log('Refresh Token 재발급 : ', newRefreshToken);
+        // DB에 업데이트
+        await User.update({ refresh_token: newRefreshToken }, { where: { id: decoded.id } });
+      }
+
+      const response = { accessToken: newAccessToken };
+      if (newRefreshToken) response.refreshToken = newRefreshToken;
+      return response;
     } catch (err) {
       console.error('Refresh Token 검증 실패:', err);
-      throw new Error('유효하지 않은 refreshToken입니다.');
+      if (err.name === 'TokenExpiredError') {
+        throw new Error('만료된 refreshToken입니다. 재로그인이 필요합니다.');
+      } else if (err.name === 'JsonWebTokenError') {
+        throw new Error('위조되었거나 유효하지 않은 refreshToken입니다.');
+      } else {
+        throw new Error('refreshToken 검증 중 알 수 없는 오류가 발생했습니다.');
+      }
     }
   }
 
