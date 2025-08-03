@@ -59,7 +59,7 @@ class UserService {
       const refreshToken = jwt.sign(
         { id: foundUser.id, email: foundUser.email}, 
         REFRESH_SECRET, 
-        { expiresIn: '10m' } // 테스트용 10분
+        { expiresIn: '30d' }
       );
       console.log('✅ JWT 토큰 생성 성공');
 
@@ -180,7 +180,7 @@ class UserService {
         newRefreshToken = jwt.sign(
           { id: decoded.id, email: decoded.email },
           REFRESH_SECRET,
-          { expiresIn: '10m' }
+          { expiresIn: '30d' }
           );
         console.log('Refresh Token 재발급 : ', newRefreshToken);
         // DB에 업데이트
