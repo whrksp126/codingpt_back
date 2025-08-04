@@ -23,7 +23,7 @@ router.post('/refresh', refreshAccessToken); // 엑세스 토큰 재발급
 
 router.get('/', getAllUsers); // 모든 사용자 조회
 router.get('/heatmap', authMiddleware, getStudyHeatmap); // 사용자 잔디 조회(일자별 학습 횟수 조회)
-router.get('/:id', getUserById); // 특정 사용자 조회
+router.get('/me', authMiddleware, getUserById); // 특정 사용자 조회
 router.put('/:id', updateUser); // 사용자 정보 수정
 router.delete('/:id', deleteUser); // 사용자 삭제
 router.patch('/:id/xp', updateUserXp); // 사용자 XP 업데이트

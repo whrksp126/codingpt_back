@@ -91,8 +91,8 @@ const getAllUsers = async (req, res) => {
 // 특정 사용자 조회
 const getUserById = async (req, res) => {
   try {
-    const { id } = req.params;
-    const user = await userService.getUserById(id);
+    const userId = req.user.id;
+    const user = await userService.getUserById(userId);
     successResponse(res, user, '사용자 정보를 성공적으로 조회했습니다.');
   } catch (error) {
     console.error('사용자 조회 오류:', error);
