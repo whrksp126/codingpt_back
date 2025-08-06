@@ -30,6 +30,12 @@ module.exports = (sequelize, DataTypes) => {
       otherKey: 'class_id',
       timestamps: false
     });
+    Section.belongsToMany(models.Lesson, {
+      through: models.SectionLessonMap,
+      foreignKey: 'section_id',
+      otherKey: 'lesson_id',
+      timestamps: false
+    });
     Section.hasMany(models.StudyHeatmapLog, { foreignKey: 'section_id' });
   };  
 
