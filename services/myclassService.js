@@ -1,20 +1,48 @@
 const { sequelize, MyClass, MyClassStatus, Product, ProductClassMap, Class, ClassSectionMap, Section, SectionLessonMap, Lesson } = require('../models');
 
 class MyClassService {
-  // 모든 내강의 조회
+  /**
+   * 모든 내강의 조회
+   */
   async getAllMyclass(userId) {
     const myclassList = await MyClass.findAll({
       where: { user_id: userId },
       include: [
         {
           model: Product,
-          attributes: ['id', 'name', 'description', 'type', 'price', 'lecture_intro']
+          attributes: ['id', 'name', 'description', 'type', 'price', 'lecture_intro'],
+          include: [
+            {
+              model: Class,
+              through: { model: ProductClassMap, attributes: [] },
+              include: [
+                {
+                  model: Section,
+                  through: { model: ClassSectionMap, attributes: [] },
+                  include: [
+                    {
+                      model: Lesson,
+                      through: { model: SectionLessonMap, attributes: [] }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          model: MyClassStatus,
+          required: false
         }
       ]
     });
-    // Product만 추출
-    //console.log(JSON.stringify(myclassList, null, 2));
-    return myclassList.map(entry => entry.Product);
+    
+    // 데이터 구조화
+    return myclassList.map(myclass => ({
+      ...myclass.Product.dataValues,
+      myclass_id: myclass.id,
+      status: myclass.MyClassStatuses || []
+    }));
   }
   
   // 특정 상품 수강 여부 조회
