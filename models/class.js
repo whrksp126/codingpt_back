@@ -29,13 +29,15 @@ module.exports = (sequelize, DataTypes) => {
       through: models.ProductClassMap,
       foreignKey: 'class_id',
       otherKey: 'product_id',
-      timestamps: false
+      timestamps: false,
+      as: 'Products',
     });
     Class.belongsToMany(models.Section, {
       through: models.ClassSectionMap,
       foreignKey: 'class_id',
       otherKey: 'section_id',
-      timestamps: false
+      timestamps: false,
+      as: 'Sections',
     });
   };  
 

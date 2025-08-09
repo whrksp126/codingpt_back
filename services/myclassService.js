@@ -14,14 +14,17 @@ class MyClassService {
           include: [
             {
               model: Class,
+              as: 'Classes',
               through: { model: ProductClassMap, attributes: [] },
               include: [
                 {
                   model: Section,
+                  as: 'Sections',
                   through: { model: ClassSectionMap, attributes: [] },
                   include: [
                     {
                       model: Lesson,
+                      as: 'Lessons',
                       through: { model: SectionLessonMap, attributes: [] }
                     }
                   ]

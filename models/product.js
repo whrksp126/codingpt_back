@@ -39,7 +39,8 @@ module.exports = (sequelize, DataTypes) => {
       through: models.ProductClassMap,
       foreignKey: 'product_id',
       otherKey: 'class_id',
-      timestamps: false
+      timestamps: false,
+      as: 'Classes',
     });
     Product.belongsToMany(models.StoreCategory, {
       through: models.StoreCategoryProductMap,

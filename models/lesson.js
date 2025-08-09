@@ -35,7 +35,8 @@ module.exports = (sequelize, DataTypes) => {
       through: models.SectionLessonMap,
       foreignKey: 'lesson_id',
       otherKey: 'section_id',
-      timestamps: false
+      timestamps: false,
+      as: 'Sections',
     });
   };  
 
