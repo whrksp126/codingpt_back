@@ -82,18 +82,25 @@ class MyClassService {
       const product = await Product.findByPk(productId, {
         include: [{
           model: Class,
-          through: { model: ProductClassMap },
+          as: 'Classes',
+          through: { model: ProductClassMap, attributes: [] },
           include: [{
             model: Section,
-            through: { model: ClassSectionMap },
+            as: 'Sections',
+            through: { model: ClassSectionMap, attributes: [] },
             include: [{
               model: Lesson,
-              through: { model: SectionLessonMap }
+              as: 'Lessons',
+              through: { model: SectionLessonMap, attributes: [] }
             }]
           }]
         }],
         transaction: t
       });
+
+      if (!product) {
+        throw new Error('상품을 찾을 수 없습니다.');
+      }
 
       const lessonIds = [];
 
@@ -112,7 +119,9 @@ class MyClassService {
         status: 1
       }));
 
-      await MyClassStatus.bulkCreate(statusData, { transaction: t });
+      if (statusData.length > 0) {
+        await MyClassStatus.bulkCreate(statusData, { transaction: t });
+      }
 
       await t.commit(); // 성공 시 커밋
       return myclass;
