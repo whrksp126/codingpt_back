@@ -24,6 +24,12 @@ module.exports = (sequelize, DataTypes) => {
     lecture_intro: {
       type: DataTypes.JSON
     },
+    category: {
+      type: DataTypes.STRING
+    },
+    difficulty: {
+      type: DataTypes.STRING
+    },
   }, {
     tableName: 'product',
     timestamps: false,
