@@ -16,6 +16,10 @@ module.exports = (sequelize, DataTypes) => {
       status: {
         type: DataTypes.INTEGER, allowNull:
         false, defaultValue: 1
+      }, 
+      results: {
+        type: DataTypes.JSON,
+        allowNull: false
       },
     }, {
       tableName: 'myclass_status',

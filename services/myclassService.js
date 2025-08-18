@@ -130,6 +130,40 @@ class MyClassService {
       throw error;
     }
   }
+
+  // 레슨별 슬라이드 결과값 업데이트
+  async completeLessonWithResult(user_id, product_id, lesson_id, result) {
+    try {
+      if (!user_id || !product_id || !lesson_id || !result) {
+        throw new Error('필수 파라미터가 누락되었습니다.');
+      }
+
+      // 1) 내강의(myclass) 조회
+      const myclass = await MyClass.findOne({ where: { user_id, product_id } });
+
+      if (!myclass) {
+        throw new Error('내강의가 존재하지 않습니다.');
+      }
+
+      // 2) 내강의상태(myclass_status) 조회
+      let myclassStatus = await MyClassStatus.findOne({ 
+        where: { myclass_id: myclass.id, lesson_id } 
+      });
+      console.log('디비에 있는 myclassStatus', myclassStatus);
+      
+      if (myclassStatus) {
+        myclassStatus.status = 2;       // 학습 완료
+        myclassStatus.results = result; // 슬라이드 결과값
+        await myclassStatus.save();
+        return myclassStatus;
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error('레슨별 슬라이드 결과값 DB 오류:', error);
+      errorResponse(res, error, 500);
+    }
+  }
 }
 
 module.exports = new MyClassService(); 

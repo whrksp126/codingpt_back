@@ -9,10 +9,6 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.JSON,
       allowNull: false
     },
-    results: {
-      type: DataTypes.JSON,
-      allowNull: false
-    },
   }, {
     tableName: 'slide',
     timestamps: false,

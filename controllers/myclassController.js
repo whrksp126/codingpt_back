@@ -37,8 +37,25 @@ const createMyclass = async (req, res) => {
   }
 };
 
+// 레슨별 슬라이드 결과값 업데이트
+const completeLessonWithResult = async (req, res) => {
+  try {
+    console.log('레슨별 슬라이드 결과값 업데이트 진입');
+    console.log('req.body: ', req.body);
+    const { user_id, product_id, lesson_id, result } = req.body;
+    const data = await myclassService.completeLessonWithResult(user_id, product_id, lesson_id, result);
+    console.log('레슨별 슬라이드 결과값 업데이트 성공: ', data);
+    successResponse(res, data, '레슨별 슬라이드 결과값을 성공적으로 업데이트했습니다.');
+  }
+  catch (error) {
+    console.error('레슨별 슬라이드 결과값 업데이트 오류:', error);
+    errorResponse(res, error, 500);
+  }
+};
+
 module.exports = {
     getAllMyclass,
     getMyClasstById,
-    createMyclass
+    createMyclass,
+    completeLessonWithResult
   }; 
