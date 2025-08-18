@@ -28,9 +28,16 @@ module.exports = (sequelize, DataTypes) => {
 
   Lesson.associate = (models) => {
     Lesson.hasMany(models.MyClassStatus, { foreignKey: 'lesson_id' });
-    Lesson.hasMany(models.SectionLessonMap, { foreignKey: 'lesson_id' });
-    Lesson.hasMany(models.LessonSlideMap, { foreignKey: 'lesson_id' });
     Lesson.hasMany(models.StudyHeatmapLog, { foreignKey: 'lesson_id' });
+    // Lesson.hasMany(models.SectionLessonMap, { foreignKey: 'lesson_id' });
+    // Lesson.hasMany(models.LessonSlideMap, { foreignKey: 'lesson_id' });
+    Lesson.belongsToMany(models.Slide, {
+      through: models.LessonSlideMap,
+      foreignKey: 'lesson_id',
+      otherKey: 'slide_id',
+      timestamps: false,
+      as: 'Slides',
+    });
     Lesson.belongsToMany(models.Section, {
       through: models.SectionLessonMap,
       foreignKey: 'lesson_id',

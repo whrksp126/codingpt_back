@@ -6,6 +6,7 @@ const {
 
 // 레슨 관련 라우트
 // router.get('/:lessonId/slides', getSlidesByLesson); // 레슨별 슬라이드 조회
-router.get('/slides', getSlidesByLesson); // 레슨별 슬라이드 조회
+router.get('/slides', getSlidesByLesson);              // 레슨별 슬라이드 조회
+router.put('/:lessonId/results', updateLessonResults); // 레슨별 슬라이드 결과값 업데이트
 
-module.exports = router; 
+module.exports = router;

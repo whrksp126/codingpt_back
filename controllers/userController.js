@@ -105,8 +105,10 @@ const updateUserXp = async (req, res) => {
   try {
     const { id } = req.params;
     const { xp } = req.body;
+
     const result = await userService.updateUserXp(id, xp);
     successResponse(res, result, '사용자 XP가 성공적으로 업데이트되었습니다.');
+
   } catch (error) {
     console.error('사용자 XP 업데이트 오류:', error);
     errorResponse(res, { message: error.message }, 400);
