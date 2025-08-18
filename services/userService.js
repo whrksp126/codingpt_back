@@ -315,6 +315,22 @@ class UserService {
     }));
     return parsed; // [{ date: '2025-04-02', count: 2 }, ...]
   };
+
+  // 학습 히트맵 로그 생성
+  async createStudyHeatmap(user_id, product_id, section_id, lesson_id, created_at) {
+    try {
+      const data = await StudyHeatmapLog.create({ user_id, product_id, section_id, lesson_id, created_at });
+      if (data) {
+        // console.log('히트맵 추가 성공 data : ', data);
+        return data;
+      } else {
+        throw new Error('학습 히트맵 로그 생성 실패');
+      }
+    } catch (error) {
+      console.error('학습 히트맵 로그 생성 오류:', error);
+      throw new Error('학습 히트맵 로그 생성 오류');
+    }
+  }
 }
 
 

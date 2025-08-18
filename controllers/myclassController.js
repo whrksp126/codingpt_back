@@ -18,7 +18,6 @@ const getMyClasstById = async (req, res) => {
   try {
     const { user_id, product_id } = req.query;
     const checkMyclass = await myclassService.getMyClasstById(user_id, product_id);
-    console.log('컨트롤러 디비조회 성공: ', checkMyclass);
     successResponse(res, checkMyclass, '내강의 등록 여부를 성공적으로 조회했습니다.');
   } catch (error) {
     console.error('수강 여부 확인 오류:', error);
@@ -40,11 +39,8 @@ const createMyclass = async (req, res) => {
 // 레슨별 슬라이드 결과값 업데이트
 const completeLessonWithResult = async (req, res) => {
   try {
-    console.log('레슨별 슬라이드 결과값 업데이트 진입');
-    console.log('req.body: ', req.body);
     const { user_id, product_id, lesson_id, result } = req.body;
     const data = await myclassService.completeLessonWithResult(user_id, product_id, lesson_id, result);
-    console.log('레슨별 슬라이드 결과값 업데이트 성공: ', data);
     successResponse(res, data, '레슨별 슬라이드 결과값을 성공적으로 업데이트했습니다.');
   }
   catch (error) {

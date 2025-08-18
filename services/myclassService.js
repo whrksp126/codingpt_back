@@ -149,7 +149,6 @@ class MyClassService {
       let myclassStatus = await MyClassStatus.findOne({ 
         where: { myclass_id: myclass.id, lesson_id } 
       });
-      console.log('디비에 있는 myclassStatus', myclassStatus);
       
       if (myclassStatus) {
         myclassStatus.status = 2;       // 학습 완료

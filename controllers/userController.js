@@ -144,6 +144,26 @@ const getStudyHeatmap = async (req, res) => {
   }
 };
 
+// 잔디 생성: 학습 히트맵 로그 생성
+const createStudyHeatmap = async (req, res) => {
+  try {
+    let { user_id, product_id, section_id, lesson_id } = req.body;
+    if (!user_id || !product_id || !section_id || !lesson_id) {
+      throw new Error('필수 파라미터가 누락되었습니다.');
+    }
+
+    const created_at = new Date(); // TIMESTAMP NOT NULL
+    const response = await userService.createStudyHeatmap(user_id, product_id, section_id, lesson_id, created_at);
+    if (response.success) {
+      successResponse(res, response, '학습 히트맵 로그가 성공적으로 생성되었습니다.');
+    } else {
+      errorResponse(res, '학습 히트맵 로그 생성 실패', 400);
+    }
+  } catch (error) {
+    console.error('학습 히트맵 로그 생성 오류:', error);
+  }
+};
+
 module.exports = {
   login,
   logout,
@@ -156,4 +176,5 @@ module.exports = {
   updateUserXp,
   updateUserHeart,
   getStudyHeatmap,
+  createStudyHeatmap,
 }; 
