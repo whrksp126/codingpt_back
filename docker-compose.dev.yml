@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     ports:
-      - "5102:5100"
+      - "3100:3100"
     environment:
       - NODE_ENV=development
     env_file:

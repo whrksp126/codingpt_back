@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile.stg
     ports:
-      - "5101:5100"
+      - "3100:3100"
     environment:
       - NODE_ENV=staging
     env_file:

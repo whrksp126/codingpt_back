@@ -15,6 +15,6 @@ WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app .
 
-EXPOSE 5100
+EXPOSE 3100
 
 CMD ["npm", "start"] 
