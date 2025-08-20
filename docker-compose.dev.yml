@@ -2,11 +2,15 @@ version: '3.8'
 
 services:
   app:
+    container_name: codingpt_back_dev
+    image: whrksp126/codingpt_back:dev
     build: 
       context: .
       dockerfile: Dockerfile.dev
+      platforms: 
+        - linux/amd64
     ports:
-      - "3100:3100"
+      - "5102:5100"
     environment:
       - NODE_ENV=development
     env_file:

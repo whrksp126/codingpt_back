@@ -15,7 +15,7 @@ const successResponse = (res, data, message = 'Success', statusCode = 200) => {
 // 에러 응답
 const errorResponse = (res, error, statusCode = 500) => {
   const errorMessage = error.message || 'Internal Server Error';
-  const errorDetails = process.env.NODE_ENV === 'development' ? error.stack : undefined;
+  const errorDetails = process.env.NODE_ENV === 'local' ? error.stack : undefined;
   
   res.status(statusCode).json({
     success: false,

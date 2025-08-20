@@ -3,7 +3,7 @@ const path = require('path');
 const { Sequelize } = require('sequelize');
 const config = require('../config/database');
 
-const env = process.env.NODE_ENV || 'development';
+const env = process.env.NODE_ENV || 'local';
 const dbConfig = config[env];
 
 // Sequelize 인스턴스 생성

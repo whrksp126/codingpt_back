@@ -9,7 +9,7 @@ const errorHandler = require('./middlewares/errorHandler');
 const logger = require('./middlewares/logger');
 
 // 환경 변수 디버깅 (개발 환경에서만)
-if (process.env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'local') {
   console.log('🔧 환경 변수 확인:');
   console.log('NODE_ENV:', process.env.NODE_ENV);
   console.log('DB_HOST:', process.env.DB_HOST);
@@ -29,7 +29,7 @@ const allowedOrigins = [
   'http://localhost:3001', // 다른 프론트엔드 포트
   'http://10.0.2.2:3100', // React Native Android 에뮬레이터
   'http://10.0.2.2:8081', // React Native Metro 번들러
-  'https://yourdomain.com' // 프로덕션 도메인
+  'https://dev-codingpt-front.ghmate.com' 
 ];
 
 app.use(cors({
@@ -37,7 +37,7 @@ app.use(cors({
     console.log('🌐 CORS 요청 origin:', origin);
     
     // 개발 환경에서는 모든 origin 허용
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'local') {
       console.log('✅ 개발 환경 - 모든 origin 허용');
       callback(null, true);
     } else {
@@ -101,7 +101,7 @@ const startServer = async () => {
     app.listen(PORT, () => {
       console.log(`🚀 서버가 http://localhost:${PORT}에서 실행 중입니다!`);
       console.log(`👥 사용자 API: http://localhost:${PORT}/api/users`);
-      console.log(`🌍 환경: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🌍 환경: ${process.env.NODE_ENV || 'local'}`);
     });
 
   } catch (error) {

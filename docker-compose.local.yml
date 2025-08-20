@@ -2,16 +2,19 @@
 
 services:
   app:
+    container_name: codingpt_back_local
+    image: whrksp126/codingpt_back:local
     build: 
       context: .
       dockerfile: Dockerfile.local
     ports:
-      - "3100:3100"
+      - "5103:5100"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=local
+      - HOST=0.0.0.0
     env_file:
       - .env.local
     volumes:
       - .:/app
       - /app/node_modules
-    command: npm run dev
+    command: npm run dev -- --host
