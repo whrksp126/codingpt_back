@@ -49,9 +49,23 @@ const completeLessonWithResult = async (req, res) => {
   }
 };
 
+// 특정 레슨 결과 조회
+const getLessonResult = async (req, res) => {
+  try {
+    const { userId, lessonId } = req.params;
+    const result = await myclassService.getLessonResult(userId, lessonId);
+    successResponse(res, result, '특정 레슨 결과를 성공적으로 조회했습니다.');
+  }
+  catch (error) {
+    console.error('특정 레슨 결과 조회 오류:', error);
+    errorResponse(res, error, 500);
+  }
+};
+
 module.exports = {
     getAllMyclass,
     getMyClasstById,
     createMyclass,
-    completeLessonWithResult
+    completeLessonWithResult,
+    getLessonResult
   }; 

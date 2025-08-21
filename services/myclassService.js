@@ -1,4 +1,4 @@
-const { sequelize, MyClass, MyClassStatus, Product, ProductClassMap, Class, ClassSectionMap, Section, SectionLessonMap, Lesson } = require('../models');
+const { sequelize, MyClass, MyClassStatus, Product, ProductClassMap, Class, ClassSectionMap, Section, SectionLessonMap, Lesson, Slide, LessonSlideMap } = require('../models');
 
 class MyClassService {
   /**
@@ -25,7 +25,14 @@ class MyClassService {
                     {
                       model: Lesson,
                       as: 'Lessons',
-                      through: { model: SectionLessonMap, attributes: [] }
+                      through: { model: SectionLessonMap, attributes: [] },
+                      include: [
+                        {
+                          model: Slide,
+                          as: 'Slides',
+                          through: { model: LessonSlideMap, attributes: [] }
+                        }
+                      ]
                     }
                   ]
                 }
@@ -161,6 +168,32 @@ class MyClassService {
     } catch (error) {
       console.error('레슨별 슬라이드 결과값 DB 오류:', error);
       errorResponse(res, error, 500);
+    }
+  }
+
+  // 특정 레슨 결과 조회
+  async getLessonResult(userId, lessonId) {
+    try {
+      // 해당 사용자의 수강 묶음(MyClass)에 속한 lesson의 상태/결과 조회
+      const myclassStatus = await MyClassStatus.findOne({
+        include: [{
+          model: MyClass,
+          as: 'MyClass',
+          where: { user_id: userId },
+          attributes: ['id', 'user_id', 'product_id']
+        }],
+        where: { lesson_id: lessonId },
+        attributes: ['status', 'results'] // result: DB에 저장된 curLesson(JSON)
+      });
+
+      if (!myclassStatus) {
+        throw new Error('내강의상태가 존재하지 않습니다.');
+      }
+      console.log('복습 데이터 조회 : ', myclassStatus);
+      return myclassStatus;
+    } catch (error) {
+      console.error('특정 레슨 결과 조회 오류:', error);
+      throw error;
     }
   }
 }
