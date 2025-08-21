@@ -2,11 +2,15 @@ version: '3.8'
 
 services:
   app:
+    container_name: codingpt_back_stg
+    image: whrksp126/codingpt_back:stg
     build: 
       context: .
       dockerfile: Dockerfile.stg
+      platforms: 
+        - linux/amd64
     ports:
-      - "3100:3100"
+      - "5101:5100"
     environment:
       - NODE_ENV=staging
     env_file:

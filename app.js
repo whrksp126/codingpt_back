@@ -29,7 +29,9 @@ const allowedOrigins = [
   'http://localhost:3001', // 다른 프론트엔드 포트
   'http://10.0.2.2:3100', // React Native Android 에뮬레이터
   'http://10.0.2.2:8081', // React Native Metro 번들러
-  'https://dev-codingpt-front.ghmate.com' 
+  'https://dev-codingpt-front.ghmate.com',
+  'https://stg-codingpt-front.ghmate.com',
+  'https://codingpt-front.ghmate.com'
 ];
 
 app.use(cors({

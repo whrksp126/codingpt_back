@@ -9,16 +9,16 @@ docker rm codingpt_back_local
 ## 이미지 삭제(필요시)
 docker rmi whrksp126/codingpt_back:local
 
-## 로컬 환경 실행
+## local 환경 실행
 docker compose -f docker-compose.local.yml up --build
 
-## 로컬 환경 실행 (백그라운드)
+## local 환경 실행 (백그라운드)
 docker compose -f docker-compose.local.yml up --build -d
 
-## 로컬 환경의 이미지 확인
+## local 환경의 이미지 확인
 docker images | grep codingpt_back
 
-## 도커 허브에 local 태그로 푸쉬
+## local 허브에 local 태그로 푸쉬
 docker push whrksp126/codingpt_back:local
 
 ---
@@ -34,23 +34,54 @@ docker rm codingpt_back_dev
 ## 이미지 삭제(필요시)
 docker rmi whrksp126/codingpt_back:dev
 
-## 데브 환경 실행
+## dev 환경 실행
 docker compose -f docker-compose.dev.yml up --build
 
-## 데브 환경 실행 (백그라운드)
+## dev 환경 실행 (백그라운드)
 docker compose -f docker-compose.dev.yml up --build -d
 
-## 데브 환경 실행 컨테이너 중지
+## dev 환경 실행 컨테이너 중지
 docker compose -f docker-compose.dev.yml down
 
 ## dev 환경의 이미지 확인
 docker images | grep codingpt_back
 
-## 도커 허브에 local 태그로 푸쉬
+## 도커 허브에 dev 태그로 푸쉬
 docker push whrksp126/codingpt_back:dev
 
 ## 서버 적용
 sudo systemctl restart codingpt_back_dev
+
+---
+
+### 스테이징(stg) 개발 환경
+
+## 컨테이너 중지(필요시)
+docker stop codingpt_back_stg
+
+## 컨테이너 삭제(필요시)
+docker rm codingpt_back_stg
+
+## 이미지 삭제(필요시)
+docker rmi whrksp126/codingpt_back:stg
+
+## stg 환경 실행
+docker compose -f docker-compose.stg.yml up --build
+
+## stg 환경 실행 (백그라운드)
+docker compose -f docker-compose.stg.yml up --build -d
+
+## stg 환경 실행 컨테이너 중지
+docker compose -f docker-compose.stg.yml down
+
+## stg 환경의 이미지 확인
+docker images | grep codingpt_back
+
+## 도커 허브에 stg 태그로 푸쉬
+docker push whrksp126/codingpt_back:stg
+
+## 서버 적용
+sudo systemctl restart codingpt_back_stg
 
 ---
 
