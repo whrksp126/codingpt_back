@@ -139,22 +139,15 @@ class MyClassService {
   }
 
   // 레슨별 슬라이드 결과값 업데이트
-  async completeLessonWithResult(user_id, product_id, lesson_id, result) {
+  async completeLessonWithResult(user_id, myclass_id, lesson_id, result) {
     try {
-      if (!user_id || !product_id || !lesson_id || !result) {
+      if (!user_id || !myclass_id || !lesson_id || !result) {
         throw new Error('필수 파라미터가 누락되었습니다.');
       }
 
-      // 1) 내강의(myclass) 조회
-      const myclass = await MyClass.findOne({ where: { user_id, product_id } });
-
-      if (!myclass) {
-        throw new Error('내강의가 존재하지 않습니다.');
-      }
-
-      // 2) 내강의상태(myclass_status) 조회
+      // 1) 내강의상태(myclass_status) 조회
       let myclassStatus = await MyClassStatus.findOne({ 
-        where: { myclass_id: myclass.id, lesson_id } 
+        where: { myclass_id: myclass_id, lesson_id } 
       });
       
       if (myclassStatus) {

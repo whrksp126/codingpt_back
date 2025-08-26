@@ -39,8 +39,8 @@ const createMyclass = async (req, res) => {
 // 레슨별 슬라이드 결과값 업데이트
 const completeLessonWithResult = async (req, res) => {
   try {
-    const { user_id, product_id, lesson_id, result } = req.body;
-    const data = await myclassService.completeLessonWithResult(user_id, product_id, lesson_id, result);
+    const { user_id, myclass_id, lesson_id, result } = req.body;
+    const data = await myclassService.completeLessonWithResult(user_id, myclass_id, lesson_id, result);
     successResponse(res, data, '레슨별 슬라이드 결과값을 성공적으로 업데이트했습니다.');
   }
   catch (error) {
