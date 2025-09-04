@@ -37,6 +37,14 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: 5
     },
+    heart_missing: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0
+    },
+    hearts_refill_started_at: {
+      type: DataTypes.DATE
+    },
   }, {
     tableName: 'user',
     timestamps: false,
