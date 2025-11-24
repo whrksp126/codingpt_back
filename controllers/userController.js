@@ -154,7 +154,7 @@ const createStudyHeatmap = async (req, res) => {
 
     const created_at = new Date(); // TIMESTAMP NOT NULL
     const response = await userService.createStudyHeatmap(user_id, product_id, section_id, lesson_id, created_at);
-    if (response.success) {
+    if (response) {
       successResponse(res, response, '학습 히트맵 로그가 성공적으로 생성되었습니다.');
     } else {
       errorResponse(res, '학습 히트맵 로그 생성 실패', 400);

@@ -321,7 +321,6 @@ class UserService {
     try {
       const data = await StudyHeatmapLog.create({ user_id, product_id, section_id, lesson_id, created_at });
       if (data) {
-        // console.log('히트맵 추가 성공 data : ', data);
         return data;
       } else {
         throw new Error('학습 히트맵 로그 생성 실패');
