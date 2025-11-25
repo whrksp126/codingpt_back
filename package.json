@@ -19,6 +19,7 @@
   "description": "CodingPT Backend API Server",
   "dependencies": {
     "cors": "^2.8.5",
+    "dockerode": "^4.0.2",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "google-auth-library": "^10.1.0",
