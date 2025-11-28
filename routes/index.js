@@ -9,6 +9,7 @@ const lessonRoutes = require('./lessonRoutes');
 const heartRoutes = require('./heartRoutes');
 const executeRoutes = require('./executeRoutes');
 const previewRoutes = require('./previewRoutes');
+const reviewRoutes = require('./reviewRoutes');
 
 // API 라우트 설정
 router.use('/users', userRoutes);
@@ -20,6 +21,7 @@ router.use('/lesson', lessonRoutes);
 router.use('/hearts', heartRoutes);
 router.use('/execute', executeRoutes);
 router.use('/preview', previewRoutes);
+router.use('/reviews', reviewRoutes);
 
 // API 루트 엔드포인트
 router.get('/', (req, res) => {
@@ -36,7 +38,8 @@ router.get('/', (req, res) => {
       lesson: '/api/lesson',
       hearts: '/api/hearts',
       execute: '/api/execute',
-      preview: '/api/preview'
+      preview: '/api/preview',
+      reviews: '/api/reviews'
     },
     timestamp: new Date().toISOString()
   });
