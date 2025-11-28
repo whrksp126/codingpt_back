@@ -1,7 +1,5 @@
 const userService = require('../services/userService');
 const { successResponse, errorResponse } = require('../utils/response');
-const jwt = require('jsonwebtoken');
-
 
 // 로그인
 const login = async (req, res) => {
