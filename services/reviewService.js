@@ -1,4 +1,4 @@
-const { Review, ProductReviewMap, sequelize } = require('../models');
+const { Review, ProductReviewMap, User, sequelize } = require('../models');
 
 class ReviewService {
   // 리뷰 등록
@@ -37,6 +37,31 @@ class ReviewService {
       console.error('트랜잭션 롤백 완료:', error);
       throw error;
     }
+  }
+
+  // 특정 상품의 리뷰 조회
+  async getReviewsByProductId(productId) {
+    if (!productId) {
+      throw new Error('상품 ID가 필요합니다.');
+    }
+
+    const reviews = await Review.findAll({
+      attributes: ['id', 'score', 'review_text', 'created_at'],
+      include: [
+        {
+          model: ProductReviewMap,
+          where: { product_id: productId },
+          attributes: []
+        },
+        {
+          model: User,
+          attributes: ['id', 'nickname', 'profile_img']
+        }
+      ],
+      order: [['created_at', 'DESC']]
+    });
+
+    return reviews;
   }
 }
 

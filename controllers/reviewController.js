@@ -21,7 +21,26 @@ const createReview = async (req, res) => {
   }
 };
 
-module.exports = {
-  createReview
+// 특정 상품의 리뷰 조회
+const getReviewsByProductId = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    if (!productId) {
+      throw new Error('상품 ID가 필요합니다.');
+    }
+    const reviews = await reviewService.getReviewsByProductId(productId);
+    if (reviews) {
+      successResponse(res, reviews, '리뷰 목록을 성공적으로 조회했습니다.');
+    } else {
+      errorResponse(res, '리뷰 목록을 조회할 수 없습니다.', 400);
+    }
+  } catch (error) {
+    console.error('리뷰 조회 오류:', error);
+    errorResponse(res, { message: error.message }, 400);
+  }
 };
 
+module.exports = {
+  createReview,
+  getReviewsByProductId
+};
