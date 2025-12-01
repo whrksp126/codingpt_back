@@ -64,8 +64,48 @@ const updateReview = async (req, res) => {
   }
 };
 
+// 리뷰 삭제
+const deleteReview = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { reviewId } = req.params;
+
+    if (!reviewId) {
+      throw new Error('리뷰 ID가 필요합니다.');
+    }
+
+    const result = await reviewService.deleteReview(reviewId, userId);
+    if (result) {
+      successResponse(res, null, '리뷰가 성공적으로 삭제되었습니다.');
+    } else {
+      errorResponse(res, '리뷰 삭제 실패', 400);
+    }
+  } catch (error) {
+    console.error('리뷰 삭제 오류:', error);
+    errorResponse(res, { message: error.message }, 400);
+  }
+};
+
+// 내가 등록한 리뷰 조회
+const getMyReviews = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const reviews = await reviewService.getMyReviews(userId);
+    if (reviews) {
+      successResponse(res, reviews, '내 리뷰 목록을 성공적으로 조회했습니다.');
+    } else {
+      errorResponse(res, '리뷰 목록을 조회할 수 없습니다.', 400);
+    }
+  } catch (error) {
+    console.error('내 리뷰 조회 오류:', error);
+    errorResponse(res, { message: error.message }, 400);
+  }
+};
+
 module.exports = {
   createReview,
   getReviewsByProductId,
-  updateReview
+  updateReview,
+  deleteReview,
+  getMyReviews
 };

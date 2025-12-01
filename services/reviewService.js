@@ -1,4 +1,4 @@
-const { Review, ProductReviewMap, User, sequelize } = require('../models');
+const { Review, ProductReviewMap, Product, User, sequelize } = require('../models');
 
 class ReviewService {
   // 리뷰 등록
@@ -71,7 +71,6 @@ class ReviewService {
     }
 
     const review = await Review.findByPk(reviewId);
-
     if (!review) {
       throw new Error('해당 리뷰를 찾을 수 없습니다.');
     }
@@ -96,6 +95,65 @@ class ReviewService {
     await review.save();
 
     return review;
+  }
+
+  // 내가 등록한 리뷰 조회
+  async getMyReviews(userId) {
+    if (!userId) {
+      throw new Error('사용자 ID가 필요합니다.');
+    }
+
+    const reviews = await Review.findAll({
+      where: { user_id: userId },
+      attributes: ['id', 'score', 'review_text', 'created_at', 'updated_at'],
+      include: [
+        {
+          model: ProductReviewMap,
+          attributes: ['product_id'],
+        }
+      ],
+      order: [['created_at', 'DESC']]
+    });
+    console.log('내가 등록한 리뷰 조회 서비스 완료');
+    console.log('reviews', reviews);
+    return reviews;
+  }
+
+  // 리뷰 삭제
+  async deleteReview(reviewId, userId) {
+    if (!reviewId) {
+      throw new Error('리뷰 ID가 필요합니다.');
+    }
+
+    const review = await Review.findByPk(reviewId);
+    if (!review) {
+      throw new Error('해당 리뷰를 찾을 수 없습니다.');
+    }
+
+    // 본인 리뷰인지 확인
+    if (review.user_id !== userId) {
+      throw new Error('본인이 작성한 리뷰만 삭제할 수 있습니다.');
+    }
+
+    // 트랜잭션으로 ProductReviewMap과 Review 동시 삭제
+    const transaction = await sequelize.transaction();
+
+    try {
+      // ProductReviewMap 먼저 삭제
+      await ProductReviewMap.destroy({
+        where: { review_id: reviewId },
+        transaction
+      });
+
+      // Review 삭제
+      await review.destroy({ transaction });
+
+      await transaction.commit();
+      return true;
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
   }
 }
 
