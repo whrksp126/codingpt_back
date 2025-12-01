@@ -46,7 +46,7 @@ class ReviewService {
     }
 
     const reviews = await Review.findAll({
-      attributes: ['id', 'score', 'review_text', 'created_at'],
+      attributes: ['id', 'score', 'review_text', 'created_at', 'updated_at'],
       include: [
         {
           model: ProductReviewMap,
@@ -62,6 +62,40 @@ class ReviewService {
     });
 
     return reviews;
+  }
+
+  // 리뷰 수정
+  async updateReview(reviewId, userId, updateData) {
+    if (!reviewId) {
+      throw new Error('리뷰 ID가 필요합니다.');
+    }
+
+    const review = await Review.findByPk(reviewId);
+
+    if (!review) {
+      throw new Error('해당 리뷰를 찾을 수 없습니다.');
+    }
+
+    // 본인 리뷰인지 확인
+    if (review.user_id !== userId) {
+      throw new Error('본인이 작성한 리뷰만 수정할 수 있습니다.');
+    }
+
+    const { score, review_text } = updateData;
+
+    // 점수 검증 (1점에서 5점 사이)
+    if (score !== undefined && (score < 1 || score > 5)) {
+      throw new Error('점수는 1점에서 5점 사이여야 합니다.');
+    }
+
+    // 업데이트할 필드만 수정
+    if (score !== undefined) review.score = score;
+    if (review_text !== undefined) review.review_text = review_text;
+    review.updated_at = new Date();
+
+    await review.save();
+
+    return review;
   }
 }
 

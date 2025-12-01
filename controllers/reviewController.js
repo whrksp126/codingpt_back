@@ -40,7 +40,32 @@ const getReviewsByProductId = async (req, res) => {
   }
 };
 
+// 리뷰 수정
+const updateReview = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { reviewId } = req.params;
+    const { score, review_text } = req.body;
+
+    if (!reviewId) {
+      throw new Error('리뷰 ID가 필요합니다.');
+    }
+
+    const review = await reviewService.updateReview(reviewId, userId, { score, review_text });
+
+    if (review) {
+      successResponse(res, '리뷰가 성공적으로 수정되었습니다.', 200);
+    } else {
+      errorResponse(res, '리뷰 수정 실패', 400);
+    }
+  } catch (error) {
+    console.error('리뷰 수정 오류:', error);
+    errorResponse(res, { message: error.message }, 400);
+  }
+};
+
 module.exports = {
   createReview,
-  getReviewsByProductId
+  getReviewsByProductId,
+  updateReview
 };
