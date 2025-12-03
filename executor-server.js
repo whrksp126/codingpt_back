@@ -10,6 +10,9 @@ const app = express();
 const PORT = process.env.PORT || 5200;
 
 const S3_PUBLIC_BASE_URL = process.env.S3_PUBLIC_BASE_URL || 'https://s3.ghmate.com';
+// 백엔드 URL에서 Executor 서버의 공개 URL 생성 (프리뷰 URL 생성 시 사용)
+const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:5103`;
+const EXECUTOR_PUBLIC_URL = `${BACKEND_URL}/executor`;
 
 // 프리뷰 세션 관리
 // 세션 ID -> 세션 정보
@@ -34,6 +37,8 @@ setInterval(() => {
 // 환경 변수 확인 (서버 시작 시)
 console.log('🔧 [ExecutorServer] 환경 변수 확인:');
 console.log('  - PORT:', PORT);
+console.log('  - BACKEND_URL:', BACKEND_URL);
+console.log('  - EXECUTOR_PUBLIC_URL:', EXECUTOR_PUBLIC_URL);
 console.log('  - S3_PUBLIC_BASE_URL:', S3_PUBLIC_BASE_URL);
 console.log('  - AWS_REGION:', process.env.AWS_REGION || '(설정되지 않음)');
 console.log('  - AWS_ACCESS_KEY_ID:', process.env.AWS_ACCESS_KEY_ID ? '***설정됨***' : '(설정되지 않음)');
@@ -418,12 +423,14 @@ app.post('/execute', async (req, res) => {
  * S3 경로를 직접 참조하여 presigned URL 또는 공개 URL 생성
  */
 app.post('/preview', async (req, res) => {
-  const { s3Path } = req.body; // 예: "codingpt/code-execution/user-id/lesson-id/index.html"
+  const { s3Path, fileName } = req.body; 
+  // s3Path 예: "codingpt/execute/class-id-00000006" (디렉토리 경로만)
+  // fileName 예: "index.html" (선택적, 없으면 기본값 "index.html")
 
   if (!s3Path || typeof s3Path !== 'string') {
     return res.status(400).json({
       success: false,
-      message: 'S3 경로가 필요합니다. (예: class-id-00000006/index.html)'
+      message: 'S3 경로가 필요합니다. (예: codingpt/execute/class-id-00000006)'
     });
   }
 
@@ -435,16 +442,57 @@ app.post('/preview', async (req, res) => {
   }
 
   try {
-    // S3 경로 정규화 (앞뒤 슬래시 제거)
-    let normalizedPath = s3Path.replace(/^\/+|\/+$/g, '');
+    // 파일명 처리 (없으면 index.html로 고정)
+    const targetFileName = fileName && typeof fileName === 'string' ? fileName : 'index.html';
     
-    // codingpt/code-execution/ 경로를 앞에 붙이기
-    if (!normalizedPath.startsWith('codingpt/code-execution/')) {
-      normalizedPath = `codingpt/code-execution/${normalizedPath}`;
+    // S3 경로 정규화 (앞뒤 슬래시 제거)
+    let normalizedDir = s3Path.replace(/^\/+|\/+$/g, '');
+    
+    // codingpt/execute/ 경로를 앞에 붙이기
+    if (!normalizedDir.startsWith('codingpt/execute/')) {
+      normalizedDir = `codingpt/execute/${normalizedDir}`;
     }
     
-    // 짧은 경로 추출 (기존 세션 찾기용 및 URL 생성용)
-    const shortPath = normalizedPath.replace(/^codingpt\/code-execution\//, '');
+    // 전체 S3 경로 생성 (디렉토리 + 파일명)
+    const normalizedPath = `${normalizedDir}/${targetFileName}`;
+    
+    // 실제로 S3에 파일이 있는지 확인 (세션 생성 전)
+    const checkS3Url = `${S3_PUBLIC_BASE_URL}/${normalizedPath}`;
+    const urlObj = new URL(checkS3Url);
+    const checkClient = urlObj.protocol === 'https:' ? https : http;
+    
+    // S3 파일 존재 여부 확인
+    const fileExists = await new Promise((resolve) => {
+      const options = {
+        hostname: urlObj.hostname,
+        path: urlObj.pathname + (urlObj.search || ''),
+        method: 'HEAD' // HEAD 요청으로 파일 존재 여부만 확인
+      };
+      
+      const req = checkClient.request(options, (response) => {
+        console.log(`[ExecutorServer] S3 파일 존재 확인:`, {
+          statusCode: response.statusCode,
+          s3Path: normalizedPath,
+          s3Url: checkS3Url
+        });
+        resolve(response.statusCode === 200);
+      });
+      
+      req.on('error', (err) => {
+        console.error(`[ExecutorServer] S3 파일 확인 오류:`, err);
+        resolve(false);
+      });
+      
+      req.end();
+    });
+    
+    if (!fileExists) {
+      return res.status(404).json({
+        success: false,
+        message: `S3 경로에 파일이 없습니다: ${normalizedPath}`,
+        s3Path: normalizedPath
+      });
+    }
     
     // 기존 세션이 있는지 확인 (같은 S3 경로)
     const existingSessionId = s3PathToSessionId.get(normalizedPath);
@@ -459,15 +507,11 @@ app.post('/preview', async (req, res) => {
     const sessionId = `preview-${Date.now()}-${Math.random().toString(36).substring(7)}`;
     const expiresAt = Date.now() + 5 * 60 * 1000; // 5분 후 만료
     
-    // 파일명과 디렉토리 경로 분리
-    const fileName = path.basename(normalizedPath); // index.html
-    const baseDir = path.dirname(normalizedPath); // codingpt/code-execution/class-id-00000006
-    
     // 세션 정보 저장 (실제 S3 경로는 세션에만 저장)
     previewSessions.set(sessionId, {
       s3Path: normalizedPath, // 전체 S3 경로 (S3에서 파일 가져올 때 사용)
-      baseDir: baseDir, // 디렉토리 경로 (CSS/JS 파일 가져올 때 사용)
-      fileName: fileName, // 파일명
+      baseDir: normalizedDir, // 디렉토리 경로 (CSS/JS 파일 가져올 때 사용)
+      fileName: targetFileName, // 파일명
       createdAt: Date.now(),
       expiresAt: expiresAt,
       isActive: false // 접속 전에는 false
@@ -476,8 +520,8 @@ app.post('/preview', async (req, res) => {
     // S3 경로 -> 세션 ID 매핑 저장 (기존 세션 찾기용)
     s3PathToSessionId.set(normalizedPath, sessionId);
     
-    // 프리뷰 URL 생성 (S3 경로 숨김: 세션 ID + 파일명만, /preview/ 제거)
-    const previewUrl = `http://localhost:5200/${sessionId}/${fileName}`;
+    // 프리뷰 URL 생성 (환경 변수 사용, S3 경로 숨김: 세션 ID + 파일명만)
+    const previewUrl = `${EXECUTOR_PUBLIC_URL}/${sessionId}/${targetFileName}`;
 
     res.json({
       success: true,
@@ -603,8 +647,21 @@ app.get('/:sessionId/*', async (req, res) => {
   // S3에서 파일 가져오기
   try {
     // 요청된 파일명을 세션의 baseDir과 결합하여 전체 S3 경로 생성
+    // baseDir이 루트 경로 역할 (예: "codingpt/execute/class-id-00000001/.../code-execution-00000001")
+    // 절대 경로 /style.css는 여기서 baseDir + "/style.css"가 됨
+    // 상대 경로 ./style.css도 여기서 baseDir + "/style.css"가 됨 (브라우저가 자동 해석)
     const fullS3Path = `${session.baseDir}/${requestedFile}`;
     const s3Url = `${S3_PUBLIC_BASE_URL}/${fullS3Path}`;
+    
+    // 디버깅: 실제 조회하는 S3 경로 로그
+    console.log(`[ExecutorServer] S3 파일 조회:`, {
+      sessionId,
+      requestedFile,
+      baseDir: session.baseDir,
+      fullS3Path,
+      s3Url,
+      sessionS3Path: session.s3Path
+    });
     
     // HTTPS 또는 HTTP에 따라 적절한 모듈 사용
     const urlObj = new URL(s3Url);
@@ -612,9 +669,35 @@ app.get('/:sessionId/*', async (req, res) => {
     
     // HTTP/HTTPS로 S3 파일 가져오기
     let htmlContent = await new Promise((resolve, reject) => {
-      client.get(s3Url, (response) => {
+      const options = {
+        hostname: urlObj.hostname,
+        path: urlObj.pathname + (urlObj.search || ''),
+        method: 'GET'
+      };
+      
+      const req = client.request(options, (response) => {
+        // 디버깅: S3 응답 상태 로그
+        console.log(`[ExecutorServer] S3 응답:`, {
+          statusCode: response.statusCode,
+          statusMessage: response.statusMessage,
+          contentType: response.headers['content-type'],
+          contentLength: response.headers['content-length'],
+          s3Url,
+          fullS3Path,
+          requestedFile,
+          sessionBaseDir: session.baseDir
+        });
+        
         if (response.statusCode !== 200) {
-          reject(new Error(`S3 파일을 가져올 수 없습니다: ${response.statusCode}`));
+          console.error(`[ExecutorServer] S3 파일 조회 실패:`, {
+            statusCode: response.statusCode,
+            statusMessage: response.statusMessage,
+            s3Url,
+            fullS3Path,
+            requestedFile,
+            sessionBaseDir: session.baseDir
+          });
+          reject(new Error(`S3 파일을 가져올 수 없습니다: ${response.statusCode} - ${response.statusMessage}`));
           return;
         }
 
@@ -625,9 +708,13 @@ app.get('/:sessionId/*', async (req, res) => {
         response.on('end', () => {
           resolve(data);
         });
-      }).on('error', (err) => {
+      });
+      
+      req.on('error', (err) => {
         reject(err);
       });
+      
+      req.end();
     });
 
     // 파일 확장자에 따라 Content-Type 설정
@@ -643,6 +730,8 @@ app.get('/:sessionId/*', async (req, res) => {
     } else if (ext === '.svg') {
       contentType = 'image/svg+xml';
     }
+    
+    res.setHeader('Content-Type', contentType);
 
     // HTML 파일인 경우에만 세션 활성화 및 스크립트 삽입
     if (ext === '.html' || ext === '') {
@@ -650,23 +739,22 @@ app.get('/:sessionId/*', async (req, res) => {
       session.isActive = true;
       session.accessedAt = Date.now();
 
-      // 상대 경로를 프록시 경로로 변환 (S3 경로 숨김)
-      // 예: style.css -> /{sessionId}/style.css
-      const baseUrl = `/${sessionId}/`;
+      // <base> 태그를 사용하여 절대 경로를 자동으로 세션 경로로 해석
+      // HTML 엘리먼트는 원본 그대로 유지하고, 브라우저가 자동으로 해석하도록 함
+      // - 상대 경로: ./style.css, style.css -> /executor/preview-xxx/style.css (자동 해석)
+      // - 절대 경로: /style.css -> /executor/preview-xxx/style.css (<base> 태그로 자동 해석)
+      const baseUrl = `/executor/${sessionId}/`;
       
-      // HTML 내부의 상대 경로를 프록시 경로로 변환
-      htmlContent = htmlContent.replace(
-        /(href|src)=(["'])(?!https?:\/\/)([^"']+)(["'])/g,
-        (match, attr, quote1, url, quote2) => {
-          // 이미 절대 경로로 시작하는 경우는 제외
-          if (url.startsWith('/')) {
-            return match;
-          }
-          // 상대 경로를 프록시 경로로 변환
-          const newUrl = baseUrl + url;
-          return `${attr}=${quote1}${newUrl}${quote2}`;
-        }
-      );
+      // <head> 태그 내부에 <base> 태그 삽입 (가장 앞에)
+      const baseTag = `<base href="${baseUrl}">`;
+      if (htmlContent.includes('<head>')) {
+        htmlContent = htmlContent.replace('<head>', `<head>\n    ${baseTag}`);
+      } else if (htmlContent.includes('<html>')) {
+        htmlContent = htmlContent.replace('<html>', `<html>\n  <head>\n    ${baseTag}\n  </head>`);
+      } else {
+        // <head>나 <html> 태그가 없으면 앞에 추가
+        htmlContent = `<head>\n    ${baseTag}\n  </head>\n${htmlContent}`;
+      }
 
       // 페이지 이탈 감지 스크립트 삽입
       const expireScript = `
@@ -680,8 +768,8 @@ app.get('/:sessionId/*', async (req, res) => {
               if (hasExpired) return;
               hasExpired = true;
               
-              // 서버에 만료 요청
-              fetch('/' + sessionId + '/expire', {
+              // 서버에 만료 요청 (/executor 경로 포함)
+              fetch('/executor/' + sessionId + '/expire', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
               }).catch(() => {});
@@ -714,11 +802,43 @@ app.get('/:sessionId/*', async (req, res) => {
       }
     }
 
-    res.setHeader('Content-Type', contentType);
     res.send(htmlContent);
 
   } catch (err) {
-    console.error('[ExecutorServer] S3 파일 가져오기 오류:', err);
+    console.error('[ExecutorServer] S3 파일 가져오기 오류:', {
+      error: err.message,
+      stack: err.stack,
+      sessionId,
+      requestedFile,
+      sessionBaseDir: session?.baseDir,
+      fullS3Path: session ? `${session.baseDir}/${requestedFile}` : 'unknown'
+    });
+    
+    // 404 에러인 경우 명확한 메시지
+    if (err.message.includes('404') || err.message.includes('403') || err.message.includes('가져올 수 없습니다')) {
+      return res.status(404).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>파일을 찾을 수 없습니다</title>
+          <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            h1 { color: #e74c3c; }
+            pre { background: #f5f5f5; padding: 20px; border-radius: 5px; text-align: left; display: inline-block; margin: 20px; }
+          </style>
+        </head>
+        <body>
+          <h1>파일을 찾을 수 없습니다</h1>
+          <p>S3에서 파일을 찾을 수 없습니다.</p>
+          <pre>파일: ${requestedFile || 'unknown'}
+경로: ${session?.baseDir || 'unknown'}
+전체 경로: ${session ? `${session.baseDir}/${requestedFile}` : 'unknown'}
+오류: ${err.message}</pre>
+        </body>
+        </html>
+      `);
+    }
+    
     res.status(500).send(`
       <!DOCTYPE html>
       <html>
@@ -727,11 +847,13 @@ app.get('/:sessionId/*', async (req, res) => {
         <style>
           body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
           h1 { color: #e74c3c; }
+          pre { background: #f5f5f5; padding: 20px; border-radius: 5px; text-align: left; display: inline-block; }
         </style>
       </head>
       <body>
-        <h1>프리뷰를 불러올 수 없습니다</h1>
-        <p>${err.message}</p>
+        <h1>오류 발생</h1>
+        <p>파일을 가져오는 중 오류가 발생했습니다.</p>
+        <pre>${err.message}</pre>
       </body>
       </html>
     `);

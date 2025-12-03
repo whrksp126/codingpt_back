@@ -27,6 +27,7 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173', // React 개발 서버
   'http://localhost:3001', // 다른 프론트엔드 포트
+  'http://192.168.0.11:3100', // GH_Home -> MacBook Pro
   'http://10.0.2.2:3100', // React Native Android 에뮬레이터
   'http://10.0.2.2:8081', // React Native Metro 번들러
   'https://dev-codingpt-front.ghmate.com',
@@ -66,8 +67,123 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // 로깅 미들웨어
 app.use(logger);
 
+// Executor 서버 프록시 (같은 도메인으로 접근 가능하도록)
+const http = require('http');
+const { URL } = require('url');
+
+app.use('/executor', (req, res) => {
+  const executorUrl = process.env.CODE_EXECUTOR_URL || 'http://code-executor:5200';
+  // /executor 경로 제거 (예: /executor/preview-xxx/style.css -> /preview-xxx/style.css)
+  const pathWithoutExecutor = req.path.replace(/^\/executor/, '') || '/';
+  const targetUrl = `${executorUrl}${pathWithoutExecutor}`;
+  const url = new URL(targetUrl);
+
+  const options = {
+    hostname: url.hostname,
+    port: url.port || 5200,
+    path: url.pathname + url.search,
+    method: req.method,
+    headers: {
+      ...req.headers,
+      host: url.hostname
+    }
+  };
+
+  // 요청 본문이 있으면 전달
+  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+    const postData = JSON.stringify(req.body);
+    options.headers['Content-Type'] = 'application/json';
+    options.headers['Content-Length'] = Buffer.byteLength(postData);
+
+    const executorReq = http.request(options, (executorRes) => {
+      // 응답 헤더 복사
+      Object.keys(executorRes.headers).forEach(key => {
+        res.setHeader(key, executorRes.headers[key]);
+      });
+      res.status(executorRes.statusCode);
+
+      // 응답 스트림 전달
+      executorRes.pipe(res);
+    });
+
+    executorReq.on('error', (err) => {
+      console.error('[App] Executor 프록시 오류:', err);
+      res.status(500).json({
+        success: false,
+        message: `Executor 서버 연결 실패: ${err.message}`
+      });
+    });
+
+    executorReq.write(postData);
+    executorReq.end();
+  } else {
+    // GET, DELETE 등
+    const executorReq = http.request(options, (executorRes) => {
+      // 응답 헤더 복사
+      Object.keys(executorRes.headers).forEach(key => {
+        res.setHeader(key, executorRes.headers[key]);
+      });
+      res.status(executorRes.statusCode);
+
+      // 응답 스트림 전달
+      executorRes.pipe(res);
+    });
+
+    executorReq.on('error', (err) => {
+      console.error('[App] Executor 프록시 오류:', err);
+      res.status(500).json({
+        success: false,
+        message: `Executor 서버 연결 실패: ${err.message}`
+      });
+    });
+
+    executorReq.end();
+  }
+});
+
 // API 라우트
 app.use('/api', routes);
+
+// 프리뷰 세션의 절대 경로 요청 처리 (Referer 기반)
+// 예: /style.css 요청이 /executor/preview-xxx/index.html에서 온 경우
+// -> /executor/preview-xxx/style.css로 리다이렉트
+app.use((req, res, next) => {
+  // /executor 경로는 제외
+  if (req.path.startsWith('/executor') || req.path.startsWith('/api')) {
+    return next();
+  }
+  
+  // 정적 파일 확장자만 처리 (CSS, JS, 이미지, 폰트, 미디어 등)
+  const staticExtensions = [
+    // 스타일시트
+    '.css',
+    // 스크립트
+    '.js', '.mjs',
+    // 이미지
+    '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.bmp', '.ico', '.avif',
+    // 폰트
+    '.woff', '.woff2', '.ttf', '.eot', '.otf',
+    // 미디어
+    '.mp4', '.webm', '.ogg', '.mp3', '.wav', '.flac', '.aac',
+    // 기타
+    '.json', '.xml', '.pdf', '.txt', '.csv'
+  ];
+  const hasStaticExtension = staticExtensions.some(ext => req.path.toLowerCase().endsWith(ext));
+  
+  if (hasStaticExtension && req.get('referer')) {
+    const referer = req.get('referer');
+    // Referer에서 /executor/preview-xxx/ 패턴 찾기
+    const match = referer.match(/\/executor\/(preview-[^\/]+)\//);
+    if (match) {
+      const sessionId = match[1];
+      // 세션 경로로 리다이렉트
+      const redirectPath = `/executor/${sessionId}${req.path}`;
+      return res.redirect(redirectPath);
+    }
+  }
+  
+  next();
+});
 
 // 404 핸들러
 app.use('*', (req, res) => {

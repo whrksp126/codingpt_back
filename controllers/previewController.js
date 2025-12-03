@@ -5,19 +5,22 @@ const { URL } = require('url');
  * S3 HTML 프리뷰 URL 생성
  */
 const createPreview = async (req, res) => {
-  const { s3Path } = req.body;
+  const { s3Path, fileName } = req.body;
+  // s3Path 예: "codingpt/execute/class-id-00000006" (디렉토리 경로만)
+  // fileName 예: "index.html" (선택적, 없으면 기본값 "index.html")
 
   if (!s3Path || typeof s3Path !== 'string') {
     return res.status(400).json({
       success: false,
-      message: 'S3 경로가 필요합니다. (예: codingpt/code-execution/user-id/lesson-id/index.html)'
+      message: 'S3 경로가 필요합니다. (예: codingpt/execute/class-id-00000006)'
     });
   }
 
   const executorUrl = process.env.CODE_EXECUTOR_URL || 'http://code-executor:5200';
   const url = new URL(`${executorUrl}/preview`);
 
-  const postData = JSON.stringify({ s3Path });
+  // fileName이 있으면 함께 전달, 없으면 executor-server에서 기본값 처리
+  const postData = JSON.stringify({ s3Path, fileName });
 
   const options = {
     hostname: url.hostname,
