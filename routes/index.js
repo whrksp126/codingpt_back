@@ -7,9 +7,9 @@ const storeRoutes = require('./storeRoutes');
 const myclassRoutes = require('./myclassRoutes');
 const lessonRoutes = require('./lessonRoutes');
 const heartRoutes = require('./heartRoutes');
-const executeRoutes = require('./executeRoutes');
-const previewRoutes = require('./previewRoutes');
+const executorRoutes = require('./executorRoutes');
 const reviewRoutes = require('./reviewRoutes');
+const s3Routes = require('./s3Routes');
 
 // API 라우트 설정
 router.use('/users', userRoutes);
@@ -19,9 +19,9 @@ router.use('/store', storeRoutes);
 router.use('/myclass', myclassRoutes);
 router.use('/lesson', lessonRoutes);
 router.use('/hearts', heartRoutes);
-router.use('/execute', executeRoutes);
-router.use('/preview', previewRoutes);
+router.use('/executor', executorRoutes);
 router.use('/reviews', reviewRoutes);
+router.use('/s3', s3Routes);
 
 // API 루트 엔드포인트
 router.get('/', (req, res) => {
@@ -37,9 +37,9 @@ router.get('/', (req, res) => {
       myclass: '/api/myclass',
       lesson: '/api/lesson',
       hearts: '/api/hearts',
-      execute: '/api/execute',
-      preview: '/api/preview',
-      reviews: '/api/reviews'
+      executor: '/api/executor',
+      reviews: '/api/reviews',
+      s3: '/api/s3'
     },
     timestamp: new Date().toISOString()
   });

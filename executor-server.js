@@ -7,7 +7,7 @@ const https = require('https');
 const http = require('http');
 
 const app = express();
-const PORT = process.env.PORT || 5200;
+const PORT = process.env.EXECUTOR_PORT || 5200;
 
 const S3_PUBLIC_BASE_URL = process.env.S3_PUBLIC_BASE_URL || 'https://s3.ghmate.com';
 // 백엔드 URL에서 Executor 서버의 공개 URL 생성 (프리뷰 URL 생성 시 사용)

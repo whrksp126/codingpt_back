@@ -1,13 +1,15 @@
 const http = require('http');
 const { URL } = require('url');
+const s3Service = require('../services/s3Service');
 
 /**
  * S3 HTML 프리뷰 URL 생성
+ * fileName 필드 제거: 자동으로 index.html을 찾거나 첫 번째 HTML 파일을 사용
  */
 const createPreview = async (req, res) => {
-  const { s3Path, fileName } = req.body;
+  const { s3Path } = req.body;
   // s3Path 예: "codingpt/execute/class-id-00000006" (디렉토리 경로만)
-  // fileName 예: "index.html" (선택적, 없으면 기본값 "index.html")
+  // fileName 필드는 더 이상 사용하지 않음 - 자동으로 index.html 찾기
 
   if (!s3Path || typeof s3Path !== 'string') {
     return res.status(400).json({
@@ -16,10 +18,31 @@ const createPreview = async (req, res) => {
     });
   }
 
+  // fileName이 없으면 자동으로 index.html 찾기
+  let fileName = null;
+  try {
+    fileName = await s3Service.findIndexHtml(s3Path);
+    
+    if (!fileName) {
+      return res.status(404).json({
+        success: false,
+        message: 'HTML 파일을 찾을 수 없습니다. index.html 또는 다른 HTML 파일이 필요합니다.',
+        s3Path: s3Path
+      });
+    }
+  } catch (error) {
+    console.error('[PreviewController] index.html 찾기 오류:', error);
+    return res.status(500).json({
+      success: false,
+      message: '파일 목록을 조회하는 중 오류가 발생했습니다.',
+      error: error.message
+    });
+  }
+
   const executorUrl = process.env.CODE_EXECUTOR_URL || 'http://code-executor:5200';
   const url = new URL(`${executorUrl}/preview`);
 
-  // fileName이 있으면 함께 전달, 없으면 executor-server에서 기본값 처리
+  // 찾은 fileName을 executor 서버에 전달
   const postData = JSON.stringify({ s3Path, fileName });
 
   const options = {

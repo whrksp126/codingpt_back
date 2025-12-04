@@ -9,36 +9,9 @@ services:
       dockerfile: Dockerfile.local
     ports:
       - "5103:5100"
-    environment:
-      - NODE_ENV=local
-      - HOST=0.0.0.0
-      - CODE_EXECUTOR_URL=http://code-executor:5200
     env_file:
       - .env.local
     volumes:
       - .:/app
       - /app/node_modules
-    depends_on:
-      - code-executor
-    command: npm run dev -- --host
-
-  code-executor:
-    container_name: codingpt_code_executor_local
-    build:
-      context: .
-      dockerfile: Dockerfile.executor
-    ports:
-      - "5200:5200"
-    environment:
-      - PORT=5200
-      - AWS_REGION=${AWS_REGION:-ap-northeast-2}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
-      - S3_PUBLIC_BASE_URL=${S3_PUBLIC_BASE_URL}
-    env_file:
-      - .env.local
-    # 네트워크는 app과 같은 네트워크에서 통신
-    networks:
-      - default
-    restart: unless-stopped
+    command: sh -c "npm install && npm run dev -- --host"
