@@ -105,7 +105,8 @@ class S3Service {
       let normalizedPath = s3Path.replace(/^\/+|\/+$/g, '');
       
       // codingpt/execute/ prefix가 없으면 추가 (코드 실행 관련 경로인 경우)
-      if (normalizedPath && !normalizedPath.startsWith('codingpt/execute/')) {
+      // 단, TTS 경로(codingpt/tts/)는 제외
+      if (normalizedPath && !normalizedPath.startsWith('codingpt/execute/') && !normalizedPath.startsWith('codingpt/tts/')) {
         // class-id- 또는 execute/ 로 시작하는 경우 codingpt/execute/ prefix 추가
         if (normalizedPath.startsWith('class-id-') || normalizedPath.startsWith('execute/')) {
           normalizedPath = `codingpt/execute/${normalizedPath}`;
@@ -358,7 +359,8 @@ class S3Service {
       let normalizedPath = filePath.replace(/^\/+|\/+$/g, '');
       
       // codingpt/execute/ prefix가 없으면 항상 추가 (기본 경로)
-      if (normalizedPath && !normalizedPath.startsWith('codingpt/execute/')) {
+      // 단, TTS 경로(codingpt/tts/)는 제외
+      if (normalizedPath && !normalizedPath.startsWith('codingpt/execute/') && !normalizedPath.startsWith('codingpt/tts/')) {
         normalizedPath = `codingpt/execute/${normalizedPath}`;
       }
 
@@ -503,7 +505,8 @@ class S3Service {
       let normalizedPath = filePath.replace(/^\/+|\/+$/g, '');
       
       // codingpt/execute/ prefix가 없으면 항상 추가 (기본 경로)
-      if (normalizedPath && !normalizedPath.startsWith('codingpt/execute/')) {
+      // 단, TTS 경로(codingpt/tts/)는 제외
+      if (normalizedPath && !normalizedPath.startsWith('codingpt/execute/') && !normalizedPath.startsWith('codingpt/tts/')) {
         normalizedPath = `codingpt/execute/${normalizedPath}`;
       }
 
@@ -863,7 +866,8 @@ class S3Service {
 
       // 경로 정규화
       let normalizedOldPath = oldPath.replace(/^\/+|\/+$/g, '');
-      if (normalizedOldPath && !normalizedOldPath.startsWith('codingpt/execute/')) {
+      // TTS 경로(codingpt/tts/)는 제외
+      if (normalizedOldPath && !normalizedOldPath.startsWith('codingpt/execute/') && !normalizedOldPath.startsWith('codingpt/tts/')) {
         normalizedOldPath = `codingpt/execute/${normalizedOldPath}`;
       }
 
@@ -1016,10 +1020,11 @@ class S3Service {
       let normalizedSourcePath = sourcePath.replace(/^\/+|\/+$/g, '');
       let normalizedTargetPath = targetPath.replace(/^\/+|\/+$/g, '');
 
-      if (normalizedSourcePath && !normalizedSourcePath.startsWith('codingpt/execute/')) {
+      // TTS 경로(codingpt/tts/)는 제외
+      if (normalizedSourcePath && !normalizedSourcePath.startsWith('codingpt/execute/') && !normalizedSourcePath.startsWith('codingpt/tts/')) {
         normalizedSourcePath = `codingpt/execute/${normalizedSourcePath}`;
       }
-      if (normalizedTargetPath && !normalizedTargetPath.startsWith('codingpt/execute/')) {
+      if (normalizedTargetPath && !normalizedTargetPath.startsWith('codingpt/execute/') && !normalizedTargetPath.startsWith('codingpt/tts/')) {
         normalizedTargetPath = `codingpt/execute/${normalizedTargetPath}`;
       }
 

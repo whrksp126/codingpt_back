@@ -70,9 +70,12 @@ app.use(logger);
 // API 라우트
 app.use('/api', routes);
 
+// [과거 프록시 방식 코드 - 주석 처리]
 // 프리뷰 세션의 절대 경로 요청 처리 (Referer 기반)
 // 예: /style.css 요청이 /api/executor/preview-xxx/index.html에서 온 경우
 // -> /api/executor/preview-xxx/style.css로 리다이렉트
+// 현재는 executor-server.js에서 직접 처리하므로 이 코드는 사용하지 않음
+/*
 app.use((req, res, next) => {
   // /api 경로는 제외
   if (req.path.startsWith('/api')) {
@@ -110,6 +113,7 @@ app.use((req, res, next) => {
   
   next();
 });
+*/
 
 // 404 핸들러
 app.use('*', (req, res) => {
