@@ -117,10 +117,10 @@ const generate = async (req, res) => {
         textLength: text?.length,
         fullResult: ttsResult
       });
-      
+
       // 에러 메시지가 있으면 사용, 없으면 기본 메시지
       const errorMessage = ttsResult.message || '음성 생성에 실패했습니다.';
-      
+
       return res.status(400).json({
         success: false,
         message: errorMessage,
@@ -145,7 +145,7 @@ const generate = async (req, res) => {
       timestamps: ttsResult.timestamps || null,
       fileName,
       fileSize: null, // 나중에 업데이트
-      duration: null, // 오디오 길이는 나중에 계산 가능
+      duration: ttsResult.duration || null,
       status: 'pending' // S3 저장 후 completed로 변경
     });
 
@@ -185,8 +185,8 @@ const generate = async (req, res) => {
       data: {
         requestId: request.id,
         audioUrl: urlResult.success ? urlResult.url : null,
-        timestamps: request.timestamps,
-        duration: request.duration,
+        timestamps: ttsResult.timestamps, // 최신 타임스탬프 (duration 포함됨)
+        duration: ttsResult.duration,
         fileName: request.file_name,
         text: request.text,
         voiceId: request.voice_id,
@@ -346,7 +346,7 @@ const save = async (req, res) => {
 const getSavedFiles = async (req, res) => {
   try {
     const userId = req.user?.id || null; // 인증되지 않은 사용자는 null
-    
+
     // 인증되지 않은 사용자는 빈 목록 반환
     if (!userId) {
       return successResponse(res, {
@@ -411,7 +411,7 @@ const deleteSavedFile = async (req, res) => {
   try {
     const { savedFileId } = req.params;
     const userId = req.user?.id || null; // 인증되지 않은 사용자는 null
-    
+
     // 인증되지 않은 사용자는 삭제 불가
     if (!userId) {
       return errorResponse(res, { message: '인증이 필요합니다.' }, 401);

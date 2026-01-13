@@ -7,7 +7,7 @@ class TTSService {
   constructor() {
     this.apiKey = process.env.ELEVENLABS_API_KEY;
     this.apiUrl = process.env.ELEVENLABS_API_URL || 'https://api.elevenlabs.io/v1';
-    
+
     if (!this.apiKey) {
       console.warn('[TTSService] ELEVENLABS_API_KEY 환경 변수가 설정되지 않았습니다.');
     }
@@ -146,7 +146,7 @@ class TTSService {
       };
     } catch (error) {
       console.error('[TTSService] 모델 목록 조회 실패:', error.message);
-      
+
       return {
         success: false,
         error: 'ModelListError',
@@ -253,7 +253,7 @@ class TTSService {
       });
 
       const allVoices = response.data.voices || [];
-      
+
       // 사용자가 선택/저장한 목소리만 필터링
       // API 응답 구조에 따라 다음 필드들을 확인:
       // - is_favorite: 즐겨찾기 여부
@@ -265,12 +265,12 @@ class TTSService {
         if (voice.is_favorite === true) {
           return true;
         }
-        
+
         // 2. 사용자가 생성한 커스텀 목소리 (category가 'premade'가 아닌 것)
         if (voice.category && voice.category !== 'premade') {
           return true;
         }
-        
+
         // 3. category가 없으면 사용자 계정에 등록된 목소리로 간주
         // (API 키와 연동된 계정의 목소리만 반환되므로)
         // 기본 제공 목소리(premade)는 제외
@@ -283,11 +283,11 @@ class TTSService {
       };
     } catch (error) {
       console.error('[TTSService] 목소리 목록 조회 실패:', error.message);
-      
+
       if (error.response) {
         const status = error.response.status;
         const message = error.response.data?.detail?.message || error.response.data?.detail || '목소리 목록을 가져오는데 실패했습니다.';
-        
+
         return {
           success: false,
           error: 'ElevenLabsAPIError',
@@ -295,7 +295,7 @@ class TTSService {
           message
         };
       }
-      
+
       return {
         success: false,
         error: 'NetworkError',
@@ -325,18 +325,18 @@ class TTSService {
       // 모델 정보 조회하여 지원하는 설정만 필터링
       const modelSettingsResult = await this.getModelSettings(modelId);
       let validSettings = {};
-      
+
       if (modelSettingsResult.success) {
         const settingsSchema = modelSettingsResult.settingsSchema;
         const defaultSettings = modelSettingsResult.defaultSettings;
-        
+
         // 지원하는 설정만 포함
         Object.keys(settings).forEach(key => {
           if (settingsSchema[key] && settingsSchema[key].supported) {
             validSettings[key] = settings[key];
           }
         });
-        
+
         // 기본값으로 병합
         validSettings = { ...defaultSettings, ...validSettings };
       } else {
@@ -362,7 +362,7 @@ class TTSService {
         output_format: 'mp3_44100_128',
         enable_logging: false
       };
-      
+
       // optimize_streaming_latency는 v3 모델이 아닌 경우에만 추가
       if (modelId !== 'eleven_v3') {
         params.optimize_streaming_latency = 0;
@@ -407,9 +407,10 @@ class TTSService {
       }
 
       // 타임스탬프 데이터 파싱
+      let duration = 0;
       if (responseData.alignment) {
         const alignment = responseData.alignment;
-        
+
         // ElevenLabs API 응답 형식에 맞게 변환
         timestamps = {
           version: '1.0',
@@ -426,6 +427,12 @@ class TTSService {
             start: alignment.character_start_times_seconds[index] || 0,
             end: alignment.character_end_times_seconds[index] || 0
           }));
+
+          // 마지막 문자 종료 시간을 총 길이로 설정
+          if (alignment.character_end_times_seconds.length > 0) {
+            duration = alignment.character_end_times_seconds[alignment.character_end_times_seconds.length - 1];
+            timestamps.total_duration = duration;
+          }
         }
 
         // 단어 단위 타임스탬프 (API에서 제공하는 경우)
@@ -447,7 +454,7 @@ class TTSService {
 
           for (let i = 0; i < characters.length; i++) {
             const char = characters[i];
-            
+
             // 공백이면 단어 종료
             if (char.char.trim() === '') {
               if (currentWord.trim() && wordStart !== null) {
@@ -489,7 +496,8 @@ class TTSService {
         success: true,
         audioBuffer,
         audioSize: audioBuffer.length,
-        timestamps
+        timestamps,
+        duration
       };
     } catch (error) {
       console.error('[TTSService] 음성 생성 실패:', {
@@ -500,11 +508,11 @@ class TTSService {
         modelId,
         textLength: text?.length
       });
-      
+
       if (error.response) {
         const status = error.response.status;
         let message = '음성 생성에 실패했습니다.';
-        
+
         // 응답 데이터 파싱 (Buffer인 경우 JSON으로 변환)
         let responseData = error.response.data;
         if (Buffer.isBuffer(responseData)) {
@@ -514,7 +522,7 @@ class TTSService {
             // 파싱 실패 시 그대로 사용
           }
         }
-        
+
         if (status === 401) {
           message = 'API 키가 유효하지 않습니다.';
         } else if (status === 429) {
@@ -542,7 +550,7 @@ class TTSService {
             message = String(responseData);
           }
         }
-        
+
         return {
           success: false,
           error: 'ElevenLabsAPIError',
@@ -550,7 +558,7 @@ class TTSService {
           message
         };
       }
-      
+
       return {
         success: false,
         error: 'NetworkError',
@@ -576,18 +584,18 @@ class TTSService {
       // 모델 정보 조회하여 지원하는 설정만 필터링
       const modelSettingsResult = await this.getModelSettings(modelId);
       let validSettings = {};
-      
+
       if (modelSettingsResult.success) {
         const settingsSchema = modelSettingsResult.settingsSchema;
         const defaultSettings = modelSettingsResult.defaultSettings;
-        
+
         // 지원하는 설정만 포함
         Object.keys(settings).forEach(key => {
           if (settingsSchema[key] && settingsSchema[key].supported) {
             validSettings[key] = settings[key];
           }
         });
-        
+
         // 기본값으로 병합
         validSettings = { ...defaultSettings, ...validSettings };
       } else {
@@ -609,19 +617,19 @@ class TTSService {
       // 타임스탬프를 포함한 요청
       // ElevenLabs API의 실제 타임스탬프 엔드포인트 확인 필요
       // 일단 기본 구조만 구현
-      
+
       // 모델별 파라미터 구성
       // eleven_v3 모델은 optimize_streaming_latency를 지원하지 않음
       const params = {
         output_format: 'mp3_44100_128',
         enable_logging: false
       };
-      
+
       // optimize_streaming_latency는 v3 모델이 아닌 경우에만 추가
       if (modelId !== 'eleven_v3') {
         params.optimize_streaming_latency = 0;
       }
-      
+
       const response = await axios.post(
         `${this.apiUrl}/text-to-speech/${voiceId}`,
         requestBody,
