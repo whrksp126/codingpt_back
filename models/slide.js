@@ -16,6 +16,7 @@ module.exports = (sequelize, DataTypes) => {
 
   Slide.associate = (models) => {
     Slide.hasMany(models.LessonSlideMap, { foreignKey: 'slide_id' });
+    Slide.hasMany(models.CodeFillGap, { foreignKey: 'slide_id' });
   };  
 
   return Slide;
