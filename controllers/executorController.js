@@ -62,10 +62,10 @@ const executeS3File = async (req, res) => {
 
     // S3에서 파일 내용 가져오기
     const fileResult = await s3Service.getFileContent(normalizedPath);
-    
+
     if (!fileResult.success) {
       const statusCode = fileResult.error === 'NoSuchKey' ? 404 :
-                        fileResult.error === 'AccessDenied' ? 403 : 500;
+        fileResult.error === 'AccessDenied' ? 403 : 500;
       return res.status(statusCode).json({
         success: false,
         message: fileResult.message || 'S3 파일을 불러올 수 없습니다.',
@@ -75,7 +75,7 @@ const executeS3File = async (req, res) => {
 
     // 파일 내용
     let code = fileResult.content;
-    
+
     // base64 인코딩된 경우 디코딩
     if (fileResult.encoding === 'base64') {
       code = Buffer.from(code, 'base64').toString('utf-8');
@@ -83,7 +83,7 @@ const executeS3File = async (req, res) => {
 
     // 언어 자동 판단 또는 명시적 언어 사용
     const detectedLanguage = language || executorService.detectLanguageFromFile(fileName);
-    
+
     if (!detectedLanguage) {
       return res.status(400).json({
         success: false,
@@ -272,7 +272,7 @@ const servePreview = async (req, res) => {
     }
   } catch (error) {
     console.error('[ExecutorController] 프리뷰 파일 제공 오류:', error);
-    
+
     if (error.message.includes('404') || error.message.includes('403')) {
       return res.status(404).send(`
         <!DOCTYPE html>
@@ -305,7 +305,7 @@ const expirePreview = (req, res) => {
   }
 
   const expired = previewService.expireSession(sessionId);
-  
+
   if (expired) {
     res.json({ success: true, message: '프리뷰 세션이 만료되었습니다.' });
   } else {

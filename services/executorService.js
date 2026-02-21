@@ -6,7 +6,7 @@ const os = require('os');
 class ExecutorService {
   constructor() {
     this.tempDir = path.join(os.tmpdir(), 'code-execute');
-    
+
     if (!fs.existsSync(this.tempDir)) {
       fs.mkdirSync(this.tempDir, { recursive: true });
     }
@@ -129,7 +129,7 @@ class ExecutorService {
           if (line || index < lines.length - 1) {
             try {
               res.write(`data: ${JSON.stringify({ type: 'output', data: line + (index < lines.length - 1 ? '\n' : '') })}\n\n`);
-            } catch (err) {}
+            } catch (err) { }
           }
         });
       });
@@ -144,7 +144,7 @@ class ExecutorService {
           if (line || index < lines.length - 1) {
             try {
               res.write(`data: ${JSON.stringify({ type: 'error', data: line + (index < lines.length - 1 ? '\n' : '') })}\n\n`);
-            } catch (err) {}
+            } catch (err) { }
           }
         });
       });
@@ -160,13 +160,13 @@ class ExecutorService {
           res.write(`data: ${JSON.stringify({ type: 'log', message: `프로세스가 종료되었습니다. (종료 코드: ${code})\n` })}\n\n`);
           res.write(`data: ${JSON.stringify({ type: 'close', exitCode: code, hasError: hasError || code !== 0 })}\n\n`);
           res.end();
-        } catch (err) {}
+        } catch (err) { }
       });
 
       // 프로세스 에러 처리
       process.on('error', (err) => {
         if (isFinished) return;
-        
+
         // Python fallback 시도
         if (lang === 'python' && langConfig.fallbackCommand && err.code === 'ENOENT') {
           this.runFallbackProcess(langConfig.fallbackCommand, args, tempFile, res);
@@ -181,7 +181,7 @@ class ExecutorService {
           res.write(`data: ${JSON.stringify({ type: 'error', data: `프로세스 실행 오류: ${err.message}\n` })}\n\n`);
           res.write(`data: ${JSON.stringify({ type: 'close', exitCode: -1, hasError: true, message: '실행 실패' })}\n\n`);
           res.end();
-        } catch (writeErr) {}
+        } catch (writeErr) { }
       });
 
     } catch (err) {
@@ -223,7 +223,7 @@ class ExecutorService {
         if (line || index < lines.length - 1) {
           try {
             res.write(`data: ${JSON.stringify({ type: 'output', data: line + (index < lines.length - 1 ? '\n' : '') })}\n\n`);
-          } catch (err) {}
+          } catch (err) { }
         }
       });
     });
@@ -236,7 +236,7 @@ class ExecutorService {
         if (line || index < lines.length - 1) {
           try {
             res.write(`data: ${JSON.stringify({ type: 'error', data: line + (index < lines.length - 1 ? '\n' : '') })}\n\n`);
-          } catch (err) {}
+          } catch (err) { }
         }
       });
     });
@@ -250,7 +250,7 @@ class ExecutorService {
       try {
         res.write(`data: ${JSON.stringify({ type: 'close', exitCode: fallbackCode, hasError: fallbackHasError || fallbackCode !== 0 })}\n\n`);
         res.end();
-      } catch (err) {}
+      } catch (err) { }
     });
   }
 
