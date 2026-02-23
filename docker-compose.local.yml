@@ -11,22 +11,7 @@ services:
       - "5103:5100"
     env_file:
       - .env.local
-    environment:
-      - CODE_EXECUTOR_URL=http://code-executor:5200
     volumes:
       - .:/app
       - /app/node_modules
     command: sh -c "npm install && npm run dev -- --host"
-    depends_on:
-      - code-executor
-
-  code-executor:
-    container_name: codingpt_executor_local
-    image: whrksp126/codingpt_back:local
-    working_dir: /app
-    volumes:
-      - .:/app
-      - /app/node_modules
-    ports:
-      - "5200:5200"
-    command: node executor-server.js

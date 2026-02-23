@@ -63,6 +63,8 @@ class ExecutorService {
   async executeCode(code, language, res) {
     const lang = language.toLowerCase();
     const langConfig = this.languageConfigs[lang];
+    console.log('[DEBUG] 실행 언어:', lang);
+    console.log('[DEBUG] 언어 설정:', langConfig);
 
     if (!langConfig) {
       throw new Error(`지원하지 않는 언어입니다: ${language}`);
@@ -82,19 +84,24 @@ class ExecutorService {
       this.tempDir,
       `code-${Date.now()}-${Math.random().toString(36).substring(7)}${langConfig.extension}`
     );
+    console.log('[DEBUG] 임시 파일 생성 경로:', tempFile);
 
     try {
       fs.writeFileSync(tempFile, code, 'utf8');
+      console.log('[DEBUG] 임시 파일 저장 완료');
 
       let command = langConfig.command;
       let args = [tempFile];
 
+      console.log(`[DEBUG] 프로세스 실행 명령어: ${command} ${args.join(' ')}`);
       // 프로세스 실행
       const process = spawn(command, args, {
         cwd: '/tmp',
         env: {},
         shell: false
       });
+
+      console.log('[DEBUG] 자식 프로세스 생성 성공');
 
       let outputBuffer = '';
       let errorBuffer = '';
@@ -123,40 +130,44 @@ class ExecutorService {
       // stdout 처리
       process.stdout.on('data', (data) => {
         const output = data.toString();
+        console.log('output', output);
         outputBuffer += output;
+        console.log('outputBuffer', outputBuffer);
         const lines = output.split('\n');
+        console.log(`[DEBUG] stdout 데이터 수신 (${lines.length} lines)`);
         lines.forEach((line, index) => {
           if (line || index < lines.length - 1) {
             try {
+              console.log(`data: ${JSON.stringify({ type: 'output', data: line + (index < lines.length - 1 ? '\n' : '') })}\n\n`);
               res.write(`data: ${JSON.stringify({ type: 'output', data: line + (index < lines.length - 1 ? '\n' : '') })}\n\n`);
             } catch (err) { }
           }
         });
       });
 
-      // stderr 처리
+      // stderr 처리 - 버퍼에만 쌓기 (종료 후 정제해서 전송)
       process.stderr.on('data', (data) => {
         const error = data.toString();
+        console.error(`[DEBUG] stderr 데이터 수신: ${error}`);
         errorBuffer += error;
         hasError = true;
-        const lines = error.split('\n');
-        lines.forEach((line, index) => {
-          if (line || index < lines.length - 1) {
-            try {
-              res.write(`data: ${JSON.stringify({ type: 'error', data: line + (index < lines.length - 1 ? '\n' : '') })}\n\n`);
-            } catch (err) { }
-          }
-        });
       });
 
       // 프로세스 종료 처리
       process.on('close', (code, signal) => {
+        console.log(`[DEBUG] 프로세스 종료 이벤트 발생 (code: ${code}, signal: ${signal})`);
         if (isFinished) return;
         isFinished = true;
         clearTimeout(timeout);
         this.cleanupFile(tempFile);
 
         try {
+          if (errorBuffer) {
+            const cleanedError = this.parseNodeError(errorBuffer);
+            if (cleanedError) {
+              res.write(`data: ${JSON.stringify({ type: 'error', data: cleanedError + '\n' })}\n\n`);
+            }
+          }
           res.write(`data: ${JSON.stringify({ type: 'log', message: `프로세스가 종료되었습니다. (종료 코드: ${code})\n` })}\n\n`);
           res.write(`data: ${JSON.stringify({ type: 'close', exitCode: code, hasError: hasError || code !== 0 })}\n\n`);
           res.end();
@@ -165,6 +176,7 @@ class ExecutorService {
 
       // 프로세스 에러 처리
       process.on('error', (err) => {
+        console.error('[DEBUG] 프로세스 에러 이벤트 발상:', err);
         if (isFinished) return;
 
         // Python fallback 시도
@@ -228,17 +240,10 @@ class ExecutorService {
       });
     });
 
+    let fallbackErrorBuffer = '';
     fallbackProcess.stderr.on('data', (data) => {
-      const error = data.toString();
+      fallbackErrorBuffer += data.toString();
       fallbackHasError = true;
-      const lines = error.split('\n');
-      lines.forEach((line, index) => {
-        if (line || index < lines.length - 1) {
-          try {
-            res.write(`data: ${JSON.stringify({ type: 'error', data: line + (index < lines.length - 1 ? '\n' : '') })}\n\n`);
-          } catch (err) { }
-        }
-      });
     });
 
     fallbackProcess.on('close', (fallbackCode) => {
@@ -248,6 +253,12 @@ class ExecutorService {
       this.cleanupFile(tempFile);
 
       try {
+        if (fallbackErrorBuffer) {
+          const cleanedError = this.parseNodeError(fallbackErrorBuffer);
+          if (cleanedError) {
+            res.write(`data: ${JSON.stringify({ type: 'error', data: cleanedError + '\n' })}\n\n`);
+          }
+        }
         res.write(`data: ${JSON.stringify({ type: 'close', exitCode: fallbackCode, hasError: fallbackHasError || fallbackCode !== 0 })}\n\n`);
         res.end();
       } catch (err) { }
@@ -286,6 +297,18 @@ class ExecutorService {
 
     // 기존 executeCode 메서드 재사용
     await this.executeCode(code, detectedLanguage, res);
+  }
+
+  /**
+   * Node.js stderr에서 순수 JS 에러 메시지만 추출
+   * (스택 트레이스, 내부 파일 경로, Node.js 버전 등 노이즈 제거)
+   */
+  parseNodeError(stderr) {
+    const lines = stderr.split('\n');
+    // "Error:" 키워드가 처음 등장하는 라인만 추출
+    // (ReferenceError, SyntaxError, TypeError 등 모든 에러 타입 포함)
+    const errorLine = lines.find(line => /\w*Error:/.test(line));
+    return errorLine ? errorLine.trim() : stderr.trim();
   }
 
   /**

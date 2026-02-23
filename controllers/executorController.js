@@ -9,7 +9,12 @@ const path = require('path');
  */
 const executeCode = async (req, res) => {
   try {
-    const { code, language = 'javascript' } = req.body;
+    let { code, language } = req.body;
+    console.log('code', code);
+
+    if (language === 'js') {
+      language = 'javascript';
+    }
 
     if (!code || typeof code !== 'string') {
       return res.status(400).json({
