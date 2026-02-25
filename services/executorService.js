@@ -63,8 +63,6 @@ class ExecutorService {
   async executeCode(code, language, res) {
     const lang = language.toLowerCase();
     const langConfig = this.languageConfigs[lang];
-    console.log('[DEBUG] 실행 언어:', lang);
-    console.log('[DEBUG] 언어 설정:', langConfig);
 
     if (!langConfig) {
       throw new Error(`지원하지 않는 언어입니다: ${language}`);
@@ -84,24 +82,19 @@ class ExecutorService {
       this.tempDir,
       `code-${Date.now()}-${Math.random().toString(36).substring(7)}${langConfig.extension}`
     );
-    console.log('[DEBUG] 임시 파일 생성 경로:', tempFile);
 
     try {
       fs.writeFileSync(tempFile, code, 'utf8');
-      console.log('[DEBUG] 임시 파일 저장 완료');
 
       let command = langConfig.command;
       let args = [tempFile];
 
-      console.log(`[DEBUG] 프로세스 실행 명령어: ${command} ${args.join(' ')}`);
       // 프로세스 실행
       const process = spawn(command, args, {
         cwd: '/tmp',
         env: {},
         shell: false
       });
-
-      console.log('[DEBUG] 자식 프로세스 생성 성공');
 
       let outputBuffer = '';
       let errorBuffer = '';
@@ -130,15 +123,11 @@ class ExecutorService {
       // stdout 처리
       process.stdout.on('data', (data) => {
         const output = data.toString();
-        console.log('output', output);
         outputBuffer += output;
-        console.log('outputBuffer', outputBuffer);
         const lines = output.split('\n');
-        console.log(`[DEBUG] stdout 데이터 수신 (${lines.length} lines)`);
         lines.forEach((line, index) => {
           if (line || index < lines.length - 1) {
             try {
-              console.log(`data: ${JSON.stringify({ type: 'output', data: line + (index < lines.length - 1 ? '\n' : '') })}\n\n`);
               res.write(`data: ${JSON.stringify({ type: 'output', data: line + (index < lines.length - 1 ? '\n' : '') })}\n\n`);
             } catch (err) { }
           }
@@ -148,14 +137,12 @@ class ExecutorService {
       // stderr 처리 - 버퍼에만 쌓기 (종료 후 정제해서 전송)
       process.stderr.on('data', (data) => {
         const error = data.toString();
-        console.error(`[DEBUG] stderr 데이터 수신: ${error}`);
         errorBuffer += error;
         hasError = true;
       });
 
       // 프로세스 종료 처리
       process.on('close', (code, signal) => {
-        console.log(`[DEBUG] 프로세스 종료 이벤트 발생 (code: ${code}, signal: ${signal})`);
         if (isFinished) return;
         isFinished = true;
         clearTimeout(timeout);
@@ -176,7 +163,6 @@ class ExecutorService {
 
       // 프로세스 에러 처리
       process.on('error', (err) => {
-        console.error('[DEBUG] 프로세스 에러 이벤트 발상:', err);
         if (isFinished) return;
 
         // Python fallback 시도

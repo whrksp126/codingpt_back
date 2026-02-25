@@ -10,8 +10,6 @@ const path = require('path');
 const executeCode = async (req, res) => {
   try {
     let { code, language } = req.body;
-    console.log('code', code);
-
     if (language === 'js') {
       language = 'javascript';
     }
