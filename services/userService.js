@@ -316,6 +316,18 @@ class UserService {
     return parsed; // [{ date: '2025-04-02', count: 2 }, ...]
   };
 
+  // 누적 학습일수 조회 (전체 기간, distinct date 카운트)
+  async getTotalStudyDays(userId) {
+    const result = await StudyHeatmapLog.findOne({
+      attributes: [
+        [fn('COUNT', fn('DISTINCT', fn('DATE', col('created_at')))), 'studyDays'],
+      ],
+      where: { user_id: userId },
+      raw: true,
+    });
+    return Number(result?.studyDays ?? 0);
+  };
+
   // 학습 히트맵 로그 생성
   async createStudyHeatmap(user_id, product_id, section_id, lesson_id, created_at) {
     try {

@@ -142,6 +142,22 @@ const getStudyHeatmap = async (req, res) => {
   }
 };
 
+// 누적 학습일수 조회 (전체 기간)
+const getTotalStudyDays = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const studyDays = await userService.getTotalStudyDays(userId);
+
+    return res.status(200).json({
+      success: true,
+      data: studyDays,
+    });
+  } catch (error) {
+    console.error('학습일수 조회 실패:', error);
+    return res.status(500).json({ success: false, message: '서버 오류' });
+  }
+};
+
 // 잔디 생성: 학습 히트맵 로그 생성
 const createStudyHeatmap = async (req, res) => {
   try {
@@ -174,5 +190,6 @@ module.exports = {
   updateUserXp,
   updateUserHeart,
   getStudyHeatmap,
+  getTotalStudyDays,
   createStudyHeatmap,
-}; 
+};

@@ -13,6 +13,7 @@ const {
   updateUserXp, 
   updateUserHeart,
   getStudyHeatmap,
+  getTotalStudyDays,
   createStudyHeatmap,
 } = require('../controllers/userController');
 
@@ -24,6 +25,7 @@ router.post('/refresh', refreshAccessToken);    // 엑세스 토큰 재발급
 
 router.get('/', getAllUsers);                   // 모든 사용자 조회
 router.get('/heatmap', authMiddleware, getStudyHeatmap); // 사용자 잔디 조회(일자별 학습 횟수 조회)
+router.get('/study-days', authMiddleware, getTotalStudyDays); // 누적 학습일수 조회
 router.get('/me', authMiddleware, getUserById); // 특정 사용자 조회
 router.put('/:id', updateUser);                 // 사용자 정보 수정
 router.delete('/:id', deleteUser);              // 사용자 삭제
